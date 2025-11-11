@@ -28,4 +28,19 @@ typedef struct{
     unsigned long chamadas_escritas;
 }metricas_io;
 
+typedef struct{
+    int pid_namespace;
+    int usuario_namespace;
+    int filesystem_namespace;
+    int net_namespace;
+    int hostname_namespace;
+    int ipc_namespace;
+}metricas_namespace;
+
+typedef struct {
+    char cpu_usada[64];
+    char memoria_usada[64];
+    char memoria_limite[64];
+} metricas_cgroup;
+
 #endif
