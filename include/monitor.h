@@ -58,5 +58,6 @@ int limite_cpu(const char* nome_cgroup, double cpu_cores);
 int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb);
 
 void exportar_metricas(const char* filename, pid_t pid, metricas_cpu_t* cpu, metricas_memoria_t* memoria, metricas_io_t io);
-void 
+void ajuda();
+
 #endif
