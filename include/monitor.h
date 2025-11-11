@@ -48,4 +48,8 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t* metricas);
 int get_metricas_io(pid_t pid, metricas_io_t* metricas);
 void monitorar_processo(pid_t pid, int intervalo, int iteracoes);
 
+int get_infos_namespace(pid_t pid, metricas_namespace_t* ns_infos);
+int procurar_processo(const char* ns_tipo, const char* ns_id);
+int comparar_namespace(pid_t pid1, pid_t pid2);
+
 #endif
