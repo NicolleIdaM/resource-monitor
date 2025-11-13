@@ -8,10 +8,10 @@ int get_metricas_io(pid_t pid, metricas_io_t *metricas)
         return -1;
     }
 
-    char caminho_io[256];
-    snprintf(caminho_io, sizeof(caminho_io), "/proc/%d/io", pid);
+    char caminho[256];
+    snprintf(caminho, sizeof(caminho), "/proc/%d/io", pid);
 
-    FILE *arquivo = fopen(caminho_io, "r");
+    FILE *arquivo = fopen(caminho, "r");
     if(arquivo == NULL){
         perror("Erro ao abrir arquivo io");
         return -1;
