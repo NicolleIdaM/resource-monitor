@@ -90,3 +90,14 @@ int comparar_namespace(pid_t pid1, pid_t pid2){
 
     return diferentes;
 }
+
+int procurar_processo(const char* ns_tipo, const char* ns_id){
+    DIR *dir;
+    struct dirent *entrada_diretorio;
+    char caminhpo[512];
+    char namespace_caminho[512];
+    char armazenar_links[1024];
+    ssize_t armazenar_tamanho;
+
+    unsigned long ns_inode = strtoul(ns_id, NULL, 10);
+}
