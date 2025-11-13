@@ -94,11 +94,9 @@ int comparar_namespace(pid_t pid1, pid_t pid2){
 int procurar_processo(const char* ns_tipo, const char* ns_id){
     DIR *dir;
     struct dirent *entrada_diretorio;
-    char caminhpo[512];
+    char caminho[512];  // Corrigido o typo "caminhpo"
     char namespace_caminho[512];
-    char armazenar_links[1024];
-    ssize_t armazenar_tamanho;
-
+    
     unsigned long ns_inode = strtoul(ns_id, NULL, 10);
 
     dir = opendir("/proc");
@@ -109,9 +107,30 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
 
     printf("Processos no namespace %s [%s]:\n", ns_tipo, ns_id);
 
-    while((entrada_diretorio = readdir(dir)) != 0){
-        if(entrada_diretorio -> d_type == DT_DIR && atoi(entrada_diretorio -> d_name) > 0){
+    while((entrada_diretorio = readdir(dir)) != NULL){
+        if(entrada_diretorio->d_type == DT_DIR && atoi(entrada_diretorio->d_name) > 0){
+            snprintf(namespace_caminho, sizeof(namespace_caminho), 
+                    "/proc/%s/ns/%s", entrada_diretorio->d_name, ns_tipo);
             
+            struct stat numero_inode;
+            if(stat(namespace_caminho, &numero_inode) == 0){
+                if(numero_inode.st_ino == ns_inode){
+                    snprintf(caminho, sizeof(caminho), "/proc/%s/comm", entrada_diretorio->d_name);
+                    
+                    FILE *arquivo_comando = fopen(caminho, "r");
+                    char comando[256] = "desconhecido";
+                    if(arquivo_comando){
+                        fgets(comando, sizeof(comando), arquivo_comando);
+                        comando[strcspn(comando, "\n")] = 0;
+                        fclose(arquivo_comando);
+                    }
+                    
+                    printf("  PID: %s, Comando: %s\n", entrada_diretorio->d_name, comando);
+                }
+            }
         }
     }
+
+    closedir(dir);
+    return 0;
 }
