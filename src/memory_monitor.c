@@ -24,4 +24,11 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         fprintf(stderr, "Erro ao ler estatísticas do processo\n");
         return -1;
     }
+
+    long tamanho_pagina = sysconf(_SC_PAGESIZE);
+    metricas -> RAM = resident * tamanho_pagina;
+    metricas -> MV = size * tamanho_pagina;
+    metricas -> MTD = text * tamanho_pagina;
+
+    return 0;
 }
