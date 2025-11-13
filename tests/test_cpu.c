@@ -7,12 +7,12 @@
 /*Gerar Carga de CPU*/
 void gerar_carga_cpu(){
     volatile double resultado = 0;
-    const long iteracoes = 1000000;
+    const long iteracoes = 3000000;
 
     for(int i = 0; i < iteracoes; i++){
         resultado += sqrt(i) * (i + 1) * sin(i * 0.01);
         if(i % (iteracoes / 10) == 0){
-            printf("Progresso: %ld%%\n", (i * 100)/iteracoes);
+            printf("Progresso: %d%%\n", (int)((i * 100)/iteracoes));
         }
     }
 }
@@ -24,8 +24,12 @@ int main(){
     pid_t pid = getpid();
     int testes_funcionando = 0;
 
-    /*Teste 1 - Leitura Básica*/
-    printf("\nTESTE DE LEITURA BÁSICA\n");
+    /*Inicializacao*/
+    get_metricas_cpu(pid, &cpu);
+    sleep(1);
+
+    /*Teste 1 - Leitura Basica*/
+    printf("\nTESTE DE LEITURA BASICA\n");
     if(get_metricas_cpu(pid, &cpu) == 0){
         printf("Teste de leitura funcionando (CPU: %.1f%%)\n", cpu.porcentagem_cpu);
         testes_funcionando++;
@@ -33,19 +37,19 @@ int main(){
         printf("Teste de leitura falhou\n");
     }
 
-    /*Teste 2 - Detecção de carga*/
-    printf("\nTESTE DE DETECÇÃO DE CARGA\n");
-    metricas_cpu_t antes, depois;
+    /*Teste 2 - Detecao de carga*/
+    printf("\nTESTE DE DETECAO DE CARGA\n");
+    metricas_cpu_t antes, durante;
 
     get_metricas_cpu(pid, &antes);
     gerar_carga_cpu();
-    get_metricas_cpu(pid, &depois);   
+    get_metricas_cpu(pid, &durante);
     
-    if(depois.porcentagem_cpu > antes.porcentagem_cpu){
-        printf("Teste de detecção funcionando (AUMENTOU: %1.f%%)\n", depois.porcentagem_cpu-antes.porcentagem_cpu);
+    if(durante.porcentagem_cpu > 1.0){
+        printf("Teste de detecao funcionando (CPU: %.1f%%)\n", durante.porcentagem_cpu);
         testes_funcionando++;
     }else{
-        printf("Teste de detecção falhou\n");
+        printf("Teste de detecao falhou (CPU: %.1f%%)\n", durante.porcentagem_cpu);
     }
 
     /*Teste 3 - Multiplas Leituras*/
@@ -70,6 +74,8 @@ int main(){
     if(testes_funcionando == 3){
         printf("\nTodos os testes funcionaram\n");
     }else{
-        printf("\nAlgo não funcionou! Verefique o programa!\n");
+        printf("\nAlguns testes falharam\n");
     }
+    
+    return 0;
 }
