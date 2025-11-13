@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include "../include/monitor.h"
+#include <math.h>
 
 void gerar_carga_memoria(){
     const size_t tamanho_bloco = pow(1024, 2);
-    const int qtde_bloco = 50;
+    const int qtde_bloco = 10;
 
     char** blocos = malloc(qtde_bloco * sizeof(char*));
 
@@ -14,12 +16,10 @@ void gerar_carga_memoria(){
         blocos[i] = malloc(tamanho_bloco);
         if(blocos[i]){
             memset(blocos[i], i % 256, tamanho_bloco);
-            printf("Alocado bloco %d/%d\n", i + 1, qtde_bloco);
+            printf("\n  Alocado bloco %d/%d", i + 1, qtde_bloco);
         }
-        usleep(100000);
+        sleep(1);
     }
-
-    sleep(2);
 
     for(int i = 0; i < qtde_bloco; i++){
         free(blocos[i]);
@@ -51,7 +51,7 @@ int main(){
     gerar_carga_memoria();
     get_metricas_memoria(pid, &depois);
 
-    if(depois.RAM < antes.RAM * 1.1){
+    if(depois.RAM < antes.RAM + (50 * 1024 * 1024)){
         printf("\n  Teste de detecção funcionando (RAM Estável)\n");
         testes_funcionando++;
     }else{

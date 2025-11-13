@@ -1,6 +1,8 @@
 #include "../include/monitor.h"
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
 
 int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
     if (metricas == 0){
@@ -8,7 +10,7 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
     }
     
     char caminho[256];
-    snprintf(caminho, sizeof(caminho), "/proc/%d/status", pid);
+    snprintf(caminho, sizeof(caminho), "/proc/%d/statm", pid);
 
     FILE *arquivo = fopen(caminho, "r");
     if(arquivo == 0){

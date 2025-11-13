@@ -24,7 +24,6 @@ int main(){
     pid_t pid = getpid();
     int testes_funcionando = 0;
 
-    /*Inicializacao*/
     get_metricas_cpu(pid, &cpu);
     sleep(1);
 
