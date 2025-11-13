@@ -100,4 +100,18 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
     ssize_t armazenar_tamanho;
 
     unsigned long ns_inode = strtoul(ns_id, NULL, 10);
+
+    dir = opendir("/proc");
+    if(dir == 0){
+        perror("Erro ao abrir o diretorio /proc");
+        return -1;
+    }
+
+    printf("Processos no namespace %s [%s]:\n", ns_tipo, ns_id);
+
+    while((entrada_diretorio = readdir(dir)) != 0){
+        if(entrada_diretorio -> d_type == DT_DIR && atoi(entrada_diretorio -> d_name) > 0){
+            
+        }
+    }
 }
