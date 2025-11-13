@@ -9,4 +9,13 @@ void gerar_carga_memoria(){
     const int qtde_bloco = 50;
 
     char** blocos = malloc(qtde_bloco * sizeof(char*));
+
+    for(int i = 0; i < qtde_bloco; i++){
+        blocos[i] = malloc(tamanho_bloco);
+        if(blocos[i]){
+            memset(blocos[i], i % 256, tamanho_bloco);
+            printf("Alocado bloco %d/%d\n", i + 1, qtde_bloco);
+        }
+        usleep(100000);
+    }
 }
