@@ -13,6 +13,7 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
         return -1;
     }
 
+    /*Leitura do Tempo Total do Sistema*/
     FILE *arquivo = fopen("/proc/diskstats", "r");
     if(arquivo == 0){
         return -1;
@@ -24,4 +25,19 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
     fclose(arquivo);
 
     unsigned long tempo_total = user + nice + system + idle + iowait + irq + softirq + steal + guest;
+
+    /*Leitura do Tempo do Processo*/
+    char caminho[256];
+    snprintf(caminho, sizeof(caminho), "/proc/%d/stat", pid);
+
+    FILE *arquivo_processo = fopen(caminho, "r");
+    if(arquivo_processo == 0){
+        return -1;
+    }
+
+    unsigned long tempo_usuario, tempo_sistema;
+    char comando[256];
+    fscanf(arquivo_processo, "%*d %s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu", comando, &tempo_usuario, &tempo_sistema);
+    fclose(arquivo_processo);
+    unsigned long tempo_processo = tempo_usuario + tempo_sistema;
 }
