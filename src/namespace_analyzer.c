@@ -56,3 +56,37 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
 
     return 0;
 }
+
+int comparar_namespace(pid_t pid1, pid_t pid2){
+    metricas_namespace_t namespace1, namespace2;
+
+    if(get_infos_namespace(pid1, &namespace1) == -1){
+        return -1;
+    }
+
+    if(get_infos_namespace(pid2, &namespace2) == -1){
+        return -1;
+    }
+
+    int diferentes = 0;
+    if(namespace1.pid_namespace != namespace2.pid_namespace){
+        diferentes++;
+    }
+    if (namespace1.usuario_namespace != namespace2.usuario_namespace){
+        diferentes++;
+    }
+    if (namespace1.filesystem_namespace != namespace2.filesystem_namespace){
+        diferentes++;
+    }
+    if (namespace1.net_namespace != namespace2.net_namespace){
+        diferentes++;
+    }
+    if (namespace1.hostname_namespace != namespace2.hostname_namespace){
+        diferentes++;
+    }
+    if (namespace1.ipc_namespace != namespace2.ipc_namespace){
+        diferentes++;
+    }
+
+    return diferentes;
+}
