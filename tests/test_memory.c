@@ -18,4 +18,11 @@ void gerar_carga_memoria(){
         }
         usleep(100000);
     }
+
+    sleep(2);
+
+    for(int i = 0; i < qtde_bloco; i++){
+        free(blocos[i]);
+    }
+    free(blocos);
 }
