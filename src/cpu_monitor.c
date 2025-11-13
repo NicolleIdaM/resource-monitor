@@ -19,12 +19,12 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
         return -1;
     }
     
-    unsigned long user, nice, system, idle, iowait, irq, softirq, steal, guest;
+    unsigned long user, nice, system, idle, iowait, irq, softirq;
     
-    fscanf(arquivo, "cpu %lu %lu %lu %lu %lu %lu %lu %lu %lu", &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal, &guest);
+    fscanf(arquivo, "cpu %lu %lu %lu %lu %lu %lu %lu %lu %lu", &user, &nice, &system, &idle, &iowait, &irq, &softirq);
     fclose(arquivo);
 
-    unsigned long tempo_total = user + nice + system + idle + iowait + irq + softirq + steal + guest;
+    unsigned long tempo_total = user + nice + system + idle + iowait + irq + softirq;
 
     /*Leitura do Tempo do Processo*/
     char caminho[256];
@@ -51,6 +51,24 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
             if(metricas -> porcentagem_cpu > 100.0){
                 metricas -> porcentagem_cpu = 100.0;
             }
+        }else{
+            metricas -> porcentagem_cpu = 0.0;
         }
+    }else{
+        metricas->porcentagem_cpu = 0.0;
+        estado_cpu.primeira_chamada = 0;
     }
+
+    metricas -> tempo_usuario = tempo_usuario;
+    metricas -> tempo_sistema = tempo_sistema;
+
+    estado_cpu.ultimo_tempo_total = tempo_total;
+    estado_cpu.ultimo_tempo_processo = tempo_processo;
+    return 0;
+}
+
+void resetar_estado_cpu() {
+    estado_cpu.primeira_chamada = 1;
+    estado_cpu.ultimo_tempo_total = 0;
+    estado_cpu.ultimo_tempo_processo = 0;
 }
