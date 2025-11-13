@@ -40,4 +40,17 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
     fscanf(arquivo_processo, "%*d %s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu", comando, &tempo_usuario, &tempo_sistema);
     fclose(arquivo_processo);
     unsigned long tempo_processo = tempo_usuario + tempo_sistema;
+
+    /*Cálculo da Porcentagem a partir da Segunda Chamada*/
+    if(estado_cpu.primeira_chamada == 0){
+        unsigned long total_delta = tempo_total - estado_cpu.ultimo_tempo_total;
+        unsigned long processo_delta = tempo_processo - estado_cpu.ultimo_tempo_processo;
+
+        if(total_delta > 0){
+            metricas -> porcentagem_cpu = ((double)processo_delta / (double)total_delta) * 100.0;
+            if(metricas -> porcentagem_cpu > 100.0){
+                metricas -> porcentagem_cpu = 100.0;
+            }
+        }
+    }
 }
