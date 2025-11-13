@@ -134,3 +134,8 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
     closedir(dir);
     return 0;
 }
+
+void listar_namespaces(){
+    pid_t pids[] = {1, getpid(), 0};
+    const char* nomes[] = {"init (PID 1)", "Processo Atual", ""};
+}
