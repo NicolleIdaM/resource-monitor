@@ -155,3 +155,14 @@ void listar_namespaces(){
         }
     }
 }
+
+char* obter_tipo_namespace(const char* ns_link){
+    static char tipo[32];
+    const char *prefixo = strrchr(ns_link, '/');
+    if(prefixo){
+        strncpy(tipo, prefixo + 1, sizeof(tipo) - 1);
+        tipo[sizeof(tipo) - 1] = '\0';
+        return tipo;
+    }
+    return "desconhecido";
+}
