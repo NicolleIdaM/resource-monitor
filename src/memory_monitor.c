@@ -15,4 +15,13 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         perror("Erro ao abrir arquivo status");
         return -1;
     }
+
+    unsigned long size, resident, share, text, lib, data, dt;
+    int leitura = fscanf(arquivo, "%lu %lu %lu %lu %lu %lu %lu", &size, &resident, &share, &text, &lib, &data, &dt);
+    fclose(arquivo);
+
+    if(leitura != 7){
+        fprintf(stderr, "Erro ao ler estatísticas do processo\n");
+        return -1;
+    }
 }
