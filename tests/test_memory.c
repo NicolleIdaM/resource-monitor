@@ -42,4 +42,19 @@ int main(){
     }else{
         printf("\n  Teste de leitura falhou\n");
     }
+
+    /*Teste 2 - Detecção de Uso de Memória*/
+    printf("\nTESTE DE DETECÇÃO DE USO DE MEMÓRIA");
+    metricas_memoria_t antes, depois;
+
+    get_metricas_memoria(pid, &antes);
+    gerar_carga_memoria();
+    get_metricas_memoria(pid, &depois);
+
+    if(depois.RAM < antes.RAM * 1.1){
+        printf("\n  Teste de detecção funcionando (RAM Estável)\n");
+        testes_funcionando++;
+    }else{
+        printf("\n  Teste de detecção falhou (possível vazamento)\n");
+    }
 }
