@@ -105,4 +105,6 @@ int main()
     }else{              
         printf("\nAlgo não funcionou! Verefique o programa!\n");
     }
+
+    return 0;
 }

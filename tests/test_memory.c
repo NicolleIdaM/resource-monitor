@@ -57,4 +57,31 @@ int main(){
     }else{
         printf("\n  Teste de detecção falhou (possível vazamento)\n");
     }
+
+    /*Teste 3 - Multiplas Leituras*/
+    printf("\nTESTE DE MULTIPLAS LEITURAS");
+    int leituras_realizadas = 0;
+    for(int i = 0; i < 3; i++){
+        if(get_metricas_memoria(pid, &memoria) == 0){
+            leituras_realizadas++;
+        }
+        sleep(1);
+    }
+
+    if(leituras_realizadas == 3){
+        printf("\n  Leituras realizadas: %d/3\n", leituras_realizadas);
+        testes_funcionando++;
+    }else{
+        printf("\n  Teste de multiplas leituras falhou\n");
+    }
+
+    /*Resultado Final*/
+    printf("\nRESULTADO: %d/3 passaram\n", testes_funcionando);
+    if(testes_funcionando == 3){
+        printf("\nTodos os testes funcionaram\n");
+    }else{              
+        printf("\nAlgo não funcionou! Verefique o programa!\n");
+    }
+
+    return 0;
 }
