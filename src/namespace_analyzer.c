@@ -1,3 +1,5 @@
+#define _DEFAULT_SOURCE
+
 #include "../include/monitor.h"
 #include "../include/namespace.h"
 #include <dirent.h>
