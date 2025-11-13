@@ -138,4 +138,20 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
 void listar_namespaces(){
     pid_t pids[] = {1, getpid(), 0};
     const char* nomes[] = {"init (PID 1)", "Processo Atual", ""};
+
+    for(int i = 0; pids[i] != 0; i++){
+        metricas_namespace_t metricas;
+        if(get_infos_namespace(pids[i], &metricas) == 0){
+            printf("Namespaces do %s:\n", nomes[i]);
+            printf("  PID Namespace: %lu\n", (unsigned long)metricas.pid_namespace);
+            printf("  Usuario Namespace: %lu\n", (unsigned long)metricas.usuario_namespace);
+            printf("  Filesystem Namespace: %lu\n", (unsigned long)metricas.filesystem_namespace);
+            printf("  Network Namespace: %lu\n", (unsigned long)metricas.net_namespace);
+            printf("  Hostname Namespace: %lu\n", (unsigned long)metricas.hostname_namespace);
+            printf("  IPC Namespace: %lu\n", (unsigned long)metricas.ipc_namespace);
+            printf("\n");
+        }else{
+            printf("Erro ao obter informacoes do namespace para o PID %d\n", pids[i]);
+        }
+    }
 }
