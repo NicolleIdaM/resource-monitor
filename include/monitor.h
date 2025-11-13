@@ -8,6 +8,7 @@
 #include <time.h>
 #include <errno.h>
 #include <dirent.h>
+#include <sys/types.h> 
 
 typedef struct{
     unsigned long tempo_usuario;
