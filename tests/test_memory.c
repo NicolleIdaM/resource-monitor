@@ -26,3 +26,20 @@ void gerar_carga_memoria(){
     }
     free(blocos);
 }
+
+int main(){
+    printf("TESTE DE MEMÓRIA\n");
+
+    metricas_memoria_t memoria;
+    pid_t pid = getpid();
+    int testes_funcionando = 0;
+
+    /*Teste 1 - Leitura Básica*/
+    printf("\nTESTE DE LEITURA BÁSICA");
+    if(get_metricas_memoria(pid, &memoria) == 0){
+        printf("\n  Teste de leitura funcionando (RAM: %luKB)\n", memoria.RAM / 1024);
+        testes_funcionando++;
+    }else{
+        printf("\n  Teste de leitura falhou\n");
+    }
+}
