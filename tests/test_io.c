@@ -58,16 +58,16 @@ int main()
     int testes_funcionando = 0;
 
     /*Teste 1 - Leitura Básica*/
-    printf("\n TESTE DE LEITURA BÁSICA");
+    printf("\nTESTE DE LEITURA BÁSICA");
     if(get_metricas_io(pid, &io) == 0){
-        printf("Teste de leitura funcionando");
+        printf("\n  Teste de leitura funcionando\n");
         testes_funcionando++;
     }else{
-        printf("Teste de leitura falhou");
+        printf("\n  Teste de leitura falhou\n");
     }
 
     /*Teste 2 - Detecção de I/O*/
-    printf("TESTE DE DETECÇÃO DE I/O");
+    printf("\nTESTE DE DETECÇÃO DE I/O");
     metricas_io_t antes, depois;
 
     get_metricas_io(pid, &antes);
@@ -75,14 +75,14 @@ int main()
     get_metricas_io(pid, &depois);
 
     if(depois.bytes_escritos > antes.bytes_escritos){
-        printf("Teste de detecção funcionando (Bytes Escritos: %lu)", depois.bytes_escritos - antes.bytes_escritos);
+        printf("\n  Teste de detecção funcionando (Bytes Escritos: %lu)\n", depois.bytes_escritos - antes.bytes_escritos);
         testes_funcionando++;
     }else{
-        printf("Teste de detecção falhou");
+        printf("\n  Teste de detecção falhou\n");
     }
 
     /*Teste 3 - Multiplas Leituras*/
-    printf("TESTE DE MULTIPLAS LEITURAS");
+    printf("\nTESTE DE MULTIPLAS LEITURAS");
     int leituras_realizadas = 0;
     for(int i = 0; i < 3; i++){
         if (get_metricas_io(pid, &io) == 0){
@@ -92,10 +92,10 @@ int main()
     }
 
     if(leituras_realizadas == 3){
-        printf("Leituras realizadas: %d/3\n", leituras_realizadas);
+        printf("\n  Leituras realizadas: %d/3\n", leituras_realizadas);
         testes_funcionando++;
     }else{
-        printf("Teste de multiplas leituras falhou");
+        printf("\n  Teste de multiplas leituras falhou\n");
     }
 
     /*Resultado Final*/
