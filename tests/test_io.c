@@ -48,3 +48,21 @@ void gerar_carga_io()
     }
     unlink(filename);
 }
+
+int main()
+{
+    printf("TESTE DE I/O\n");
+
+    metricas_io_t io;
+    pid_t pid = getpid();
+    int testes_funcionando = 0;
+
+    /*Teste 1 - Leitura Básica*/
+    printf("\n TESTE DE LEITURA BÁSICA");
+    if(get_metricas_io(pid, &io) == 0){
+        printf("Teste de leitura funcionando");
+        testes_funcionando++;
+    }else{
+        printf("Teste de leitura falhou");
+    }
+}
