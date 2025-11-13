@@ -65,4 +65,44 @@ int main()
     }else{
         printf("Teste de leitura falhou");
     }
+
+    /*Teste 2 - Detecção de I/O*/
+    printf("TESTE DE DETECÇÃO DE I/O");
+    metricas_io_t antes, depois;
+
+    get_metricas_io(pid, &antes);
+    gerar_carga_io();
+    get_metricas_io(pid, &depois);
+
+    if(depois.bytes_escritos > antes.bytes_escritos){
+        printf("Teste de detecção funcionando (Bytes Escritos: %lu)", depois.bytes_escritos - antes.bytes_escritos);
+        testes_funcionando++;
+    }else{
+        printf("Teste de detecção falhou");
+    }
+
+    /*Teste 3 - Multiplas Leituras*/
+    printf("TESTE DE MULTIPLAS LEITURAS");
+    int leituras_realizadas = 0;
+    for(int i = 0; i < 3; i++){
+        if (get_metricas_io(pid, &io) == 0){
+            leituras_realizadas++;
+        }
+        sleep(1);
+    }
+
+    if(leituras_realizadas == 3){
+        printf("Leituras realizadas: %d/3\n", leituras_realizadas);
+        testes_funcionando++;
+    }else{
+        printf("Teste de multiplas leituras falhou");
+    }
+
+    /*Resultado Final*/
+    printf("\nRESULTADO: %d/3 passaram\n", testes_funcionando);
+    if(testes_funcionando == 3){
+        printf("\nTodos os testes funcionaram\n");
+    }else{              
+        printf("\nAlgo não funcionou! Verefique o programa!\n");
+    }
 }
