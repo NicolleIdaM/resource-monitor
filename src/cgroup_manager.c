@@ -1,5 +1,6 @@
 #define CGROUP_BASE "/sys/fs/cgroup"
 #define MAX_LINE 256
+#define _DEFAULT_SOURCE
 
 #include "../include/monitor.h"
 #include "../include/cgroup.h"
@@ -168,4 +169,15 @@ int remover_cgroup(const char* nome_cgroup) {
 void listar_cgroups() {
     DIR *dir;
     struct dirent *entrada_diretorio;
+
+    printf("\nCgroups de CPU:\n");
+    dir = opendir(CGROUP_BASE "/cpu");
+    if (dir) {
+        while ((entrada_diretorio = readdir(dir)) != NULL) {
+            if (entrada_diretorio -> d_type == DT_DIR && entrada_diretorio -> d_name[0] != '.') {
+                printf("  %s\n", entrada_diretorio -> d_name);
+            }
+        }
+        closedir(dir);
+    }
 }
