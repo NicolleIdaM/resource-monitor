@@ -39,3 +39,13 @@ int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas){
 
     return 0;
 }
+
+int criar_cgroup(const char* nome_cgroup){
+    char caminho[512];
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/cpu/%s", nome_cgroup);
+    if(mkdir(caminho, 0755) != 0 && errno != EEXIST){
+        perror("Erro ao criar Cgroup CPU");
+        return -1;
+    }
+}
