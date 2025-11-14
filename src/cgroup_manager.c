@@ -126,5 +126,16 @@ int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
 int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
     char caminho[512];
     unsigned long memoria_bytes = memoria_mb * pow(1024, 2);
-    
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/memory/%s/memory.limit_in_bytes", nome_cgroup);
+    FILE *arquivo = fopen(caminho, "w");
+    if (arquivo == 0) {
+        perror("Erro ao definir limite de memória");
+        return -1;
+    }
+    fprintf(arquivo, "%lu", memoria_bytes);
+    fclose(arquivo);
+
+    printf("Limite de memória definido para %lu MB no cgroup '%s'\n", memoria_mb, nome_cgroup);
+    return 0;
 }
