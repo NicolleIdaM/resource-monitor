@@ -35,6 +35,4 @@ int get_metricas_io(pid_t pid, metricas_io_t* metricas);
 void monitorar_processo(pid_t pid, int intervalo, int iteracoes);
 void resetar_estado_cpu(void);
 
-void exportar_metricas(const char* filename, pid_t pid, metricas_cpu_t* cpu, metricas_memoria_t* memoria, metricas_io_t* io);
-
 #endif
