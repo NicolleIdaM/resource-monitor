@@ -64,4 +64,13 @@ int mover_cgroup(const char* nome_cgroup, pid_t pid){
     char string[32];
 
     snprintf(string, sizeof(string), "%d", pid);
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/cpu/%s/cgroup.procs", nome_cgroup);
+    FILE *arquivo = fopen(caminho, "w");
+    if(arquivo == 0){
+        perror("Erro ao abrir cgroup.procs para CPU");
+        return -1;
+    }
+    fprintf(arquivo, "%s", string);
+    fclose(arquivo);
 }
