@@ -5,6 +5,7 @@
 #include "../include/cgroup.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <math.h>
 
 int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas){
     if(metricas == 0){
@@ -103,4 +104,9 @@ int limite_cpu(const char* nome_cgroup, double cpu_cores){
 
     printf("Limite de CPU definido para %.2f cores no cgroup '%s'\n", cpu_cores, nome_cgroup);
     return 0;
+}
+
+int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
+    char caminho[512];
+    unsigned long memoria_bytes = memoria_mb * pow(1024, 2);
 }
