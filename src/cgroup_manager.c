@@ -122,3 +122,9 @@ int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
     printf("Limite de memória definido para %lu MB no cgroup '%s'\n", memoria_mb, nome_cgroup);
     return 0;
 }
+
+int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
+    char caminho[512];
+    unsigned long memoria_bytes = memoria_mb * pow(1024, 2);
+    
+}
