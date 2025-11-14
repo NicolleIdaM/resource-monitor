@@ -4,12 +4,12 @@
 #include <sys/types.h>
 
 typedef struct{
-    int pid_namespace;
-    int usuario_namespace;
-    int filesystem_namespace;
-    int net_namespace;
-    int hostname_namespace;
-    int ipc_namespace;
+    unsigned long pid_namespace;
+    unsigned long usuario_namespace;
+    unsigned long filesystem_namespace;
+    unsigned long net_namespace;
+    unsigned long hostname_namespace;
+    unsigned long ipc_namespace;
 }metricas_namespace_t;
 
 int get_infos_namespace(pid_t pid, metricas_namespace_t* ns_infos);
