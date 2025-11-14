@@ -86,3 +86,9 @@ int mover_cgroup(const char* nome_cgroup, pid_t pid){
     printf("Processo %d movido para cgroup '%s'\n", pid, nome_cgroup);
     return 0;
 }
+
+int limite_cpu(const char* nome_cgroup, double cpu_cores){
+    char caminhi[512];
+
+    int quota = (int)(cpu_cores * 100000.0);
+}
