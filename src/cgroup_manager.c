@@ -48,4 +48,13 @@ int criar_cgroup(const char* nome_cgroup){
         perror("Erro ao criar Cgroup CPU");
         return -1;
     }
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/memory/%s", nome_cgroup);
+    if (mkdir(caminho, 0755) != 0 && errno != EEXIST) {
+        perror("Erro ao criar cgroup Memory");
+        return -1;
+    }
+
+    printf("Cgroup '%s' criado com sucesso\n", nome_cgroup);
+    return 0;
 }
