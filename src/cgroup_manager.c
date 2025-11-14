@@ -88,7 +88,19 @@ int mover_cgroup(const char* nome_cgroup, pid_t pid){
 }
 
 int limite_cpu(const char* nome_cgroup, double cpu_cores){
-    char caminhi[512];
+    char caminho[512];
 
     int quota = (int)(cpu_cores * 100000.0);
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/cpu/%s/cpu.cfs_quota_us", nome_cgroup);
+    FILE *arquivo = fopen(caminho, "w");
+    if(arquivo == 0){
+        perror("Erro ao definir limite de CPU");
+        return -1;
+    }
+    fprintf(arquivo, "%d", quota);
+    fclose(arquivo);
+
+    printf("Limite de CPU definido para %.2f cores no cgroup '%s'\n", cpu_cores, nome_cgroup);
+    return 0;
 }
