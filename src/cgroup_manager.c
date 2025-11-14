@@ -19,4 +19,17 @@ int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas){
     if(arquivo == 0){
         return -1;
     }
+
+    char linha[MAX_LINE];
+    if(fgets(linha, sizeof(linha), arquivo)){
+        char *caminho_cgroup = strchr(linha, ":");
+        if(caminho_cgroup){
+            caminho_cgroup = strchr(caminho_cgroup + 1, ":");
+            if(caminho_cgroup){
+                caminho_cgroup++;
+                printf("Processo no Cgroup: %s", caminho_cgroup);
+            }
+        }
+    }
+    fclose(arquivo);
 }
