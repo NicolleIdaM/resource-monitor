@@ -6,7 +6,7 @@
 typedef struct{
     char cpu_usada[64];
     char memoria_usada[64];
-    char memoria_usada[64];
+    char memoria_limite[64];
 }metricas_cgroup_t;
 
 int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas);
