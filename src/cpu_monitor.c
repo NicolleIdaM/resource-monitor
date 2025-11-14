@@ -1,6 +1,8 @@
 #include "../include/monitor.h"
 #include <math.h>
 #include <sys/time.h>
+#include <errno.h>
+#include <stdio.h>
 
 static struct{
     unsigned long ultimo_tempo_total;
@@ -9,40 +11,56 @@ static struct{
 }estado_cpu = {0, 0, 1};
 
 int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
-    if(metricas == 0){
+    if(metricas == NULL){
+        errno = EINVAL;
         return -1;
     }
 
-    /*Leitura do Tempo Total do Sistema*/
     FILE *arquivo = fopen("/proc/stat", "r");
-    if(arquivo == 0){
+    if(arquivo == NULL){
+        perror("Erro ao abrir /proc/stat");
         return -1;
     }
     
     unsigned long user, nice, system, idle, iowait, irq, softirq;
-    fscanf(arquivo, "cpu %lu %lu %lu %lu %lu %lu %lu", 
+    int leitura = fscanf(arquivo, "cpu %lu %lu %lu %lu %lu %lu %lu", 
            &user, &nice, &system, &idle, &iowait, &irq, &softirq);
     fclose(arquivo);
 
+    if(leitura != 7){
+        fprintf(stderr, "Erro ao ler estatísticas de CPU (lidos %d/7 campos)\n", leitura);
+        errno = EIO;
+        return -1;
+    }
+
     unsigned long tempo_total = user + nice + system + idle + iowait + irq + softirq;
 
-    /*Leitura do Tempo do Processo*/
     char caminho[256];
     snprintf(caminho, sizeof(caminho), "/proc/%d/stat", pid);
 
     FILE *arquivo_processo = fopen(caminho, "r");
-    if(arquivo_processo == 0){
+    if(arquivo_processo == NULL){
+        perror("Erro ao abrir stat do processo");
         return -1;
     }
 
     unsigned long tempo_usuario, tempo_sistema;
     char comando[256];
-    fscanf(arquivo_processo, "%*d %s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu", 
-           comando, &tempo_usuario, &tempo_sistema);
+    char estado;
+    int pid_lido;
+    
+    leitura = fscanf(arquivo_processo, "%d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu", 
+           &pid_lido, comando, &estado, &tempo_usuario, &tempo_sistema);
     fclose(arquivo_processo);
+
+    if(leitura != 5){
+        fprintf(stderr, "Erro ao ler estatísticas do processo (lidos %d/5 campos)\n", leitura);
+        errno = EIO;
+        return -1;
+    }
+
     unsigned long tempo_processo = tempo_usuario + tempo_sistema;
 
-    /*Cálculo da Porcentagem a partir da Segunda Chamada*/
     if(estado_cpu.primeira_chamada == 0){
         unsigned long total_delta = tempo_total - estado_cpu.ultimo_tempo_total;
         unsigned long processo_delta = tempo_processo - estado_cpu.ultimo_tempo_processo;
