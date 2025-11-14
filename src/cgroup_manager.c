@@ -35,8 +35,28 @@ int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas){
     }
     fclose(arquivo);
 
-    strncpy(metricas->cpu_usada, "100ms", sizeof(metricas->cpu_usada) - 1);
-    strncpy(metricas->memoria_usada, "50MB", sizeof(metricas->memoria_usada) - 1);
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/cpu/%s/cpuacct.usage", "user.slice");
+    arquivo = fopen(caminho, "r");
+    if(arquivo){
+        unsigned long cpu_usage;
+        fscanf(arquivo, "%lu", &cpu_usage);
+        fclose(arquivo);
+        snprintf(metricas -> cpu_usada, sizeof(metricas -> cpu_usada), "%luns", cpu_usage);
+    } else {
+        strncpy(metricas -> cpu_usada, "N/A", sizeof(metricas -> cpu_usada) - 1);
+    }
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/memory/%s/memory.usage_in_bytes", "user.slice");
+    arquivo = fopen(caminho, "r");
+    if(arquivo){
+        unsigned long mem_usage;
+        fscanf(arquivo, "%lu", &mem_usage);
+        fclose(arquivo);
+        snprintf(metricas -> memoria_usada, sizeof(metricas -> memoria_usada), "%luMB", mem_usage / (1024 * 1024));
+    } else {
+        strncpy(metricas -> memoria_usada, "N/A", sizeof(metricas -> memoria_usada) - 1);
+    }
+
     strncpy(metricas->memoria_limite, "max", sizeof(metricas->memoria_limite) - 1);
 
     return 0;
@@ -109,7 +129,7 @@ int limite_cpu(const char* nome_cgroup, double cpu_cores){
 
 int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
     char caminho[512];
-    unsigned long memoria_bytes = memoria_mb * pow(1024, 2);
+    unsigned long memoria_bytes = memoria_mb * 1024 * 1024;
 
     snprintf(caminho, sizeof(caminho), CGROUP_BASE "/memory/%s/memory.limit_in_bytes", nome_cgroup);
     FILE *arquivo = fopen(caminho, "w");
@@ -124,22 +144,6 @@ int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
     return 0;
 }
 
-int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
-    char caminho[512];
-    unsigned long memoria_bytes = memoria_mb * pow(1024, 2);
-
-    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/memory/%s/memory.limit_in_bytes", nome_cgroup);
-    FILE *arquivo = fopen(caminho, "w");
-    if (arquivo == 0) {
-        perror("Erro ao definir limite de memória");
-        return -1;
-    }
-    fprintf(arquivo, "%lu", memoria_bytes);
-    fclose(arquivo);
-
-    printf("Limite de memória definido para %lu MB no cgroup '%s'\n", memoria_mb, nome_cgroup);
-    return 0;
-}
 
 int remover_cgroup(const char* nome_cgroup) {
     char caminho[512];
