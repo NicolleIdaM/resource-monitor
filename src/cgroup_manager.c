@@ -149,4 +149,18 @@ int remover_cgroup(const char* nome_cgroup) {
         printf("Cgroup CPU '%s' removido\n", nome_cgroup);
         sucesso++;
     }
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/memory/%s", nome_cgroup);
+    if (rmdir(caminho) == 0) {
+        printf("Cgroup Memory '%s' removido\n", nome_cgroup);
+        sucesso++;
+    }
+
+    if (sucesso == 2) {
+        printf("Todos os cgroups removidos com sucesso\n");
+        return 0;
+    } else {
+        printf("Apenas %d de 2 cgroups foram removidos\n", sucesso);
+        return -1;
+    }
 }
