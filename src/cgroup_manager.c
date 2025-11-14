@@ -180,4 +180,15 @@ void listar_cgroups() {
         }
         closedir(dir);
     }
+
+    printf("\nCgroups de Memória:\n");
+    dir = opendir(CGROUP_BASE "/memory");
+    if (dir) {
+        while ((entrada_diretorio = readdir(dir)) != NULL) {
+            if (entrada_diretorio -> d_type == DT_DIR && entrada_diretorio -> d_name[0] != '.') {
+                printf("  %s\n", entrada_diretorio -> d_name);
+            }
+        }
+        closedir(dir);
+    }
 }
