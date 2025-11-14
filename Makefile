@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c2x -g -I./include
+CFLAGS = -Wall -Wextra -std=c99 -g -I./include
 TARGET = resource-monitor
 SOURCES = src/main.c src/cpu_monitor.c src/memory_monitor.c src/io_monitor.c \
           src/namespace_analyzer.c src/cgroup_manager.c
