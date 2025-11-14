@@ -164,3 +164,8 @@ int remover_cgroup(const char* nome_cgroup) {
         return -1;
     }
 }
+
+void listar_cgroups() {
+    DIR *dir;
+    struct dirent *entrada_diretorio;
+}
