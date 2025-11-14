@@ -143,4 +143,10 @@ int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
 int remover_cgroup(const char* nome_cgroup) {
     char caminho[512];
     int sucesso = 0;
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/cpu/%s", nome_cgroup);
+    if (rmdir(caminho) == 0) {
+        printf("Cgroup CPU '%s' removido\n", nome_cgroup);
+        sucesso++;
+    }
 }
