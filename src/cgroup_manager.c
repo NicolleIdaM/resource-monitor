@@ -73,4 +73,16 @@ int mover_cgroup(const char* nome_cgroup, pid_t pid){
     }
     fprintf(arquivo, "%s", string);
     fclose(arquivo);
+
+    snprintf(caminho, sizeof(caminho), CGROUP_BASE "/memory/%s/cgroup.procs", nome_cgroup);
+    arquivo = fopen(caminho, "w");
+    if (arquivo == NULL) {
+        perror("Erro ao abrir cgroup.procs para Memoria");
+        return -1;
+    }
+    fprintf(arquivo, "%s", string);
+    fclose(arquivo);
+
+    printf("Processo %d movido para cgroup '%s'\n", pid, nome_cgroup);
+    return 0;
 }
