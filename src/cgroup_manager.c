@@ -58,3 +58,10 @@ int criar_cgroup(const char* nome_cgroup){
     printf("Cgroup '%s' criado com sucesso\n", nome_cgroup);
     return 0;
 }
+
+int mover_cgroup(const char* nome_cgroup, pid_t pid){
+    char caminho[512];
+    char string[32];
+
+    snprintf(string, sizeof(string), "%d", pid);
+}
