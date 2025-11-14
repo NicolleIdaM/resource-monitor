@@ -11,7 +11,7 @@ test-cpu: tests/test_cpu.c src/cpu_monitor.c
 	$(CC) $(CFLAGS) -o test-cpu $^ -lm
 
 test-memory: tests/test_memory.c src/memory_monitor.c
-	$(CC) $(CFLAGS) -o test-memory $^
+	$(CC) $(CFLAGS) -o test-memory $^ -lm
 
 test-io: tests/test_io.c src/io_monitor.c
 	$(CC) $(CFLAGS) -o test-io $^
