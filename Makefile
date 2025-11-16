@@ -18,8 +18,14 @@ test-io: tests/test_io.c src/io_monitor.c
 
 test-all: test-cpu test-memory test-io
 	@echo "=== EXECUTANDO TESTES AUTOMÁTICOS ==="
+	@echo "====================================="
+	@echo "=== TESTE CPU ==="
 	@./test-cpu
+	@echo "====================================="
+	@echo "=== TESTE MEMORY ==="
 	@./test-memory
+	@echo "====================================="
+	@echo "=== TESTE IO ==="
 	@./test-io
 
 clean:
