@@ -44,11 +44,9 @@ int get_metricas_io(pid_t pid, metricas_io_t *metricas)
         } else if (strstr(linha, "syscw:")){
             if (sscanf(linha, "syscw: %lu", &metricas->chamadas_escritas) == 1) campos_lidos++;
         } else if (strstr(linha, "read_bytes")){
-            if (sscanf(linha, "read_bytes: %lu", &metricas->operacoes_lidas_disco) == 1) campos_lidos++;
-        } else if (strstr(linha, "read_bytes")){
-            if (sscanf(linha, "write_bytes: %lu", &metricas->operacoes_escritas_disco) == 1) campos_lidos++;
-        } else if (strstr(linha, "read_bytes")){
-            if (sscanf(linha, "read_bytes: %lu", &metricas->operacoes_lidas_disco) == 1) campos_lidos++;
+            if (sscanf(linha, "read_bytes: %lu", &metricas->bytes_lidos_disco) == 1) campos_lidos++;
+        } else if (strstr(linha, "write_bytes")){
+            if (sscanf(linha, "write_bytes: %lu", &metricas->bytes_escritos_disco) == 1) campos_lidos++;
         }
     }
 
@@ -76,4 +74,37 @@ int get_metricas_io(pid_t pid, metricas_io_t *metricas)
     }
 
     return 0;
+}
+
+int get_operacoes_disco(pid_t pid, unsigned long* ler_operacoes, unsigned long* escrever_operacoes, unsigned long* ler_bytes, unsigned long* escrever_bytes){
+    if(ler_operacoes == NULL){
+        errno = EINVAL;
+        return -1;
+    }
+
+    if(escrever_operacoes == NULL){
+        errno = EINVAL;
+        return -1;
+    }
+
+    if(ler_bytes == NULL){
+        errno = EINVAL;
+        return -1;
+    }
+
+    if(escrever_bytes == NULL){
+        errno = EINVAL;
+        return -1;
+    }
+
+    metricas_io_t metricas;
+    if(get_metricas_io(pid, &metricas) == 0){
+        *ler_operacoes = metricas.operacoes_lidas_disco;
+        *escrever_operacoes = metricas.operacoes_escritas_disco;
+        *ler_bytes = metricas.bytes_lidos_disco;
+        *escrever_bytes = metricas.bytes_escritos_disco;
+        return 0;
+    }
+
+    return -1;
 }
