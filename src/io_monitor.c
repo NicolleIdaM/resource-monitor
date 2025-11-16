@@ -12,10 +12,15 @@ int get_metricas_io(pid_t pid, metricas_io_t *metricas)
         return -1;
     }
     
-    metricas->bytes_lidos = 0;
-    metricas->bytes_escritos = 0;
-    metricas->chamadas_lidas = 0;
-    metricas->chamadas_escritas = 0;
+    metricas -> bytes_lidos = 0;
+    metricas -> bytes_escritos = 0;
+    metricas -> chamadas_lidas = 0;
+    metricas -> chamadas_escritas = 0;
+    metricas -> operacoes_lidas_disco = 0;
+    metricas -> operacoes_escritas_disco = 0;
+    metricas -> bytes_lidos_disco = 0;
+    metricas -> bytes_escritos_disco = 0;
+
 
     char caminho[256];
     snprintf(caminho, sizeof(caminho), "/proc/%d/io", pid);
