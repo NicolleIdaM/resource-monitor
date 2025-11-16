@@ -587,3 +587,19 @@ int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned l
            ler_blkIo, escrever_blkIo, nome_cgroup);
     return 0;
 }
+
+int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsigned long* bytes_escritos) {
+    if (nome_cgroup == NULL || bytes_lidos == NULL || bytes_escritos == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    *bytes_lidos = 0;
+    *bytes_escritos = 0;
+
+    int version = detectar_cgroup_version();
+    char caminho[512];
+    FILE *arquivo;
+
+    return 0;
+}
