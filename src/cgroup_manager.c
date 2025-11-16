@@ -555,7 +555,7 @@ int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas) {
     return 0;
 }
 
-int limite_blkio_v1(const char* nome_cgroup, unsigned long read_bps, unsigned long write_bps) {
+int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned long escrever_blkIo) {
     if (nome_cgroup == NULL) {
         errno = EINVAL;
         return -1;
@@ -568,4 +568,22 @@ int limite_blkio_v1(const char* nome_cgroup, unsigned long read_bps, unsigned lo
         perror("Erro ao criar cgroup BlkIO");
         return -1;
     }
+
+    if (ler_blkIo > 0) {
+        snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s/blkio.throttle.read_bps_device", nome_cgroup);
+        if (escrever_arquivo(caminho, "8:0 %lu", ler_blkIo) != 0) {
+            printf("Aviso: não foi possível configurar limite de leitura BlkIO\n");
+        }
+    }
+
+    if (escrever_blkIo > 0) {
+        snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s/blkio.throttle.write_bps_device", nome_cgroup);
+        if (escrever_arquivo(caminho, "8:0 %lu", escrever_blkIo) != 0) {
+            printf("Aviso: não foi possível configurar limite de escrita BlkIO\n");
+        }
+    }
+
+    printf("Limites BlkIO v1 definidos - Leitura: %lu B/s, Escrita: %lu B/s no cgroup '%s'\n", 
+           ler_blkIo, escrever_blkIo, nome_cgroup);
+    return 0;
 }
