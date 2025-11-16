@@ -11,7 +11,6 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         errno = EINVAL;
         return -1;
     }
-    
     char caminho[256];
     snprintf(caminho, sizeof(caminho), "/proc/%d/statm", pid);
 
@@ -23,7 +22,7 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
 
     unsigned long size, resident, share, text, lib, data, dt;
     int leitura = fscanf(arquivo, "%lu %lu %lu %lu %lu %lu %lu", 
-                        &size, &resident, &share, &text, &lib, &data, &dt);
+    &size, &resident, &share, &text, &lib, &data, &dt);
     fclose(arquivo);
 
     if(leitura != 7){
@@ -38,17 +37,17 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         return -1;
     }
 
-    metricas->RAM = resident * tamanho_pagina;
-    metricas->MV = size * tamanho_pagina;
-    metricas->MTD = text * tamanho_pagina;
+    metricas -> RAM = resident * tamanho_pagina;
+    metricas -> MV = size * tamanho_pagina;
+    metricas -> MTD = text * tamanho_pagina;
 
     snprintf(caminho, sizeof(caminho), "/proc/%d/stat", pid);
     arquivo = fopen(caminho, "r");
     if(arquivo == NULL){
         perror("Erro ao abrir arquivo stat para page faults");
-        metricas->page_faults_minor = 0;
-        metricas->page_faults_major = 0;
-        metricas->swap = 0;
+        metricas -> falha_pag_menor = 0;
+        metricas -> falha_pag_maior = 0;
+        metricas -> swap = 0;
         return 0;
     }
 
@@ -58,9 +57,9 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         int campo = 1;
         while(token != NULL){
             if(campo == 10){
-                metricas->page_faults_minor = strtoul(token, NULL, 10);
+                metricas -> falha_pag_menor = strtoul(token, NULL, 10);
             } else if(campo == 12){
-                metricas->page_faults_major = strtoul(token, NULL, 10);
+                metricas -> falha_pag_maior = strtoul(token, NULL, 10);
             }
             token = strtok(NULL, " ");
             campo++;
@@ -74,8 +73,10 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         char linha[256];
         while(fgets(linha, sizeof(linha), arquivo)){
             if(strstr(linha, "VmSwap:")){
-                sscanf(linha, "VmSwap: %lu kB", &metricas->swap);
-                metricas->swap *= 1024;
+                unsigned long swap_kb;
+                if (sscanf(linha, "Swap: %lu kB", &swap_kb) == 1) {
+                    metricas->swap = swap_kb * 1024;
+                }
                 break;
             }
         }

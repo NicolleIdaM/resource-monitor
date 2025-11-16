@@ -22,8 +22,8 @@ typedef struct{
     unsigned long RAM;
     unsigned long MV;
     unsigned long MTD;
-    unsigned long page_faults_minor;
-    unsigned long page_faults_major;
+    unsigned long falha_pag_menor;
+    unsigned long falha_pag_maior;
     unsigned long swap;
 }metricas_memoria_t;
 
