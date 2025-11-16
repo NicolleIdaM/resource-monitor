@@ -43,6 +43,12 @@ int get_metricas_io(pid_t pid, metricas_io_t *metricas)
             if (sscanf(linha, "syscr: %lu", &metricas->chamadas_lidas) == 1) campos_lidos++;
         } else if (strstr(linha, "syscw:")){
             if (sscanf(linha, "syscw: %lu", &metricas->chamadas_escritas) == 1) campos_lidos++;
+        } else if (strstr(linha, "read_bytes")){
+            if (sscanf(linha, "read_bytes: %lu", &metricas->operacoes_lidas_disco) == 1) campos_lidos++;
+        } else if (strstr(linha, "read_bytes")){
+            if (sscanf(linha, "write_bytes: %lu", &metricas->operacoes_escritas_disco) == 1) campos_lidos++;
+        } else if (strstr(linha, "read_bytes")){
+            if (sscanf(linha, "read_bytes: %lu", &metricas->operacoes_lidas_disco) == 1) campos_lidos++;
         }
     }
 
