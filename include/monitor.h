@@ -32,6 +32,10 @@ typedef struct{
     unsigned long bytes_escritos;
     unsigned long chamadas_lidas;
     unsigned long chamadas_escritas;
+    unsigned long operacoes_lidas_disco;
+    unsigned long operacoes_escritas_disco;
+    unsigned long bytes_lidos_disco;
+    unsigned long bytes_escritos_disco;
 }metricas_io_t;
 
 typedef struct{
