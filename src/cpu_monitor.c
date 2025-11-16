@@ -96,20 +96,20 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
         estado_cpu.primeira_chamada = 0;
     }
 
-metricas -> tempo_usuario = tempo_usuario;
-metricas -> tempo_sistema = tempo_sistema;
-metricas -> threads = qtde_threads;
+    metricas -> tempo_usuario = tempo_usuario;
+    metricas -> tempo_sistema = tempo_sistema;
+    metricas -> threads = qtde_threads;
 
-estado_cpu.ultimo_tempo_total = tempo_total;
-estado_cpu.ultimo_tempo_processo = tempo_processo;
-estado_cpu.ultimo_context_switches = context_switches;
+    estado_cpu.ultimo_tempo_total = tempo_total;
+    estado_cpu.ultimo_tempo_processo = tempo_processo;
+    estado_cpu.ultimo_context_switches = context_switches;
 
-return 0;
+    return 0;
 }
 
 void resetar_estado_cpu() {
-estado_cpu.primeira_chamada = 1;
-estado_cpu.ultimo_tempo_total = 0;
-estado_cpu.ultimo_tempo_processo = 0;
-estado_cpu.ultimo_context_switches = 0;
+    estado_cpu.primeira_chamada = 1;
+    estado_cpu.ultimo_tempo_total = 0;
+    estado_cpu.ultimo_tempo_processo = 0;
+    estado_cpu.ultimo_context_switches = 0;
 }
