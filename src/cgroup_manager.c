@@ -485,7 +485,9 @@ void listar_cgroups() {
 }
 
 int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas) {
-    if (metricas == NULL) {
+    (void)pid;
+    
+    if (metricas == NULL)  {
         errno = EINVAL;
         return -1;
     }
@@ -551,4 +553,19 @@ int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas) {
     }
 
     return 0;
+}
+
+int limite_blkio_v1(const char* nome_cgroup, unsigned long read_bps, unsigned long write_bps) {
+    if (nome_cgroup == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    char caminho[512];
+
+    snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s", nome_cgroup);
+    if (mkdir(caminho, 0755) != 0 && errno != EEXIST) {
+        perror("Erro ao criar cgroup BlkIO");
+        return -1;
+    }
 }
