@@ -601,5 +601,36 @@ int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsi
     char caminho[512];
     FILE *arquivo;
 
+    if (version == 2) {
+        snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/io.stat", nome_cgroup);
+        arquivo = fopen(caminho, "r");
+        if (arquivo != NULL) {
+            char linha[256];
+            while (fgets(linha, sizeof(linha), arquivo)) {
+                unsigned long rbytes, wbytes;
+                if (sscanf(linha, "%*s rbytes=%lu wbytes=%lu", &rbytes, &wbytes) == 2) {
+                    *bytes_lidos = rbytes;
+                    *bytes_escritos = wbytes;
+                    break;
+                }
+            }
+            fclose(arquivo);
+        }
+    } else if (version == 1) {
+        snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s/blkio.io_service_bytes", nome_cgroup);
+        arquivo = fopen(caminho, "r");
+        if (arquivo != NULL) {
+            char linha[256];
+            while (fgets(linha, sizeof(linha), arquivo)) {
+                if (strstr(linha, "Read")) {
+                    sscanf(linha, "%*s %*s %lu", bytes_lidos);
+                } else if (strstr(linha, "Write")) {
+                    sscanf(linha, "%*s %*s %lu", bytes_escritos);
+                }
+            }
+            fclose(arquivo);
+        }
+    }
+    
     return 0;
 }
