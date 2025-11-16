@@ -25,4 +25,7 @@ int criar_cgroup_v2(const char* nome_cgroup);
 int limite_cpu_v2(const char* nome_cgroup, double cpu_cores);
 int limite_memoria_v2(const char* nome_cgroup, unsigned long memoria_mb);
 
+int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsigned long* bytes_escritos);
+int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned long escrever_blkIo);
+
 #endif

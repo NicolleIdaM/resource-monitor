@@ -53,7 +53,7 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
 
     leitura = fscanf(arquivo_processo, 
     "%d %s %c %*d %*d %*d %*d %*d %*u %lu %lu %*u %*u %lu %lu %*d %*d %*d %*d %lu", 
-    &pid_lido, comando, &estado, &pag_menores, &pag_maiores, &tempo_usuario, &tempo_sistema, &num_threads);
+    &pid_lido, comando, &estado, &pag_menores, &pag_maiores, &tempo_usuario, &tempo_sistema, &qtde_threads);
     fclose(arquivo_processo);
 
     if(leitura != 8){
