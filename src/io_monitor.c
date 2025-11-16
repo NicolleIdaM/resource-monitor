@@ -53,6 +53,21 @@ int get_metricas_io(pid_t pid, metricas_io_t *metricas)
     }
 
     fclose(arquivo);
+
+    const unsigned long tamanho_bloco = 4096;
+    if(metricas -> bytes_lidos_disco > 0){
+        metricas -> operacoes_lidas_disco = metricas -> bytes_lidos_disco / tamanho_bloco;
+        if(metricas -> bytes_lidos_disco % tamanho_bloco != 0){
+            metricas -> operacoes_lidas_disco++;
+        }
+    }
+
+    if(metricas -> bytes_escritos_disco > 0){
+        metricas -> operacoes_escritas_disco = metricas -> bytes_escritos_disco / tamanho_bloco;
+        if(metricas -> bytes_escritos_disco % tamanho_bloco != 0){
+            metricas -> operacoes_escritas_disco++;
+        }
+    }
     
     if (campos_lidos < 2) {
         fprintf(stderr, "Erro: dados de I/O insuficientes (lidos %d/4 campos principais)\n", campos_lidos);
