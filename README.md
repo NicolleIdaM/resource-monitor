@@ -38,6 +38,15 @@ pip3 install matplotlib psutil
 ```
 
 # Instruções de Compilação
+## Compilação dos Módulos .C
+```bash
+# Remova arquivo de built
+make clean
+
+# Compile todos os módulos
+make
+```
+
 ## Compilação dos Testes
 ```bash
 # Remova arquivo de built
