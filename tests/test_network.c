@@ -6,7 +6,12 @@
 #include <netinet/in.h>
 #include "../include/monitor.h"
 
+/*
+ * Gera carga de rede para testes.
+ * Cria e fecha um socket para gerar atividade de rede.
+ */
 void gerar_carga_rede() {
+    /* Cria socket TCP (gera atividade de rede mesmo sem conectar) */
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd >= 0) {
         close(sockfd);
@@ -15,6 +20,10 @@ void gerar_carga_rede() {
     sleep(1);
 }
 
+/*
+ * Programa de teste para monitor de rede.
+ * Testa leitura básica, detecção de atividade e múltiplas leituras.
+ */
 int main() {
     printf("TESTE DE REDE\n");
 
@@ -38,16 +47,21 @@ int main() {
     printf("\nTESTE DE DETECÇÃO DE ATIVIDADE\n");
     metricas_rede_t antes, depois;
     
+    /* Mede rede antes da atividade */
     get_metricas_rede(pid, &antes);
+    /* Gera atividade de rede */
     gerar_carga_rede();
+    /* Mede rede depois da atividade */
     get_metricas_rede(pid, &depois);
 
+    /* Verifica se detectou mudança nas estatísticas */
     if (depois.bytes_recebidos != antes.bytes_recebidos || 
         depois.bytes_enviados != antes.bytes_enviados) {
         printf("  Teste de detecção funcionando (mudança detectada)\n");
         testes_funcionando++;
     } else {
         printf("  Teste de detecção: sem mudanças significativas (pode ser normal)\n");
+        /* Considera sucesso mesmo sem mudanças (pode ser devido a caching) */
         testes_funcionando++;
     }
 

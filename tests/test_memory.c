@@ -6,10 +6,15 @@
 #include <math.h>
 #include "../include/monitor.h"
 
+/*
+ * Gera carga de memória para testes.
+ * Aloca, preenche e libera blocos de memória.
+ */
 void gerar_carga_memoria() {
-    const size_t tamanho_bloco = 1024 * 1024;
+    const size_t tamanho_bloco = 1024 * 1024; /* 1MB por bloco */
     const int qtde_bloco = 5;
 
+    /* Aloca array de ponteiros para os blocos */
     char** blocos = malloc(qtde_bloco * sizeof(char*));
     if (blocos == NULL) {
         perror("Erro ao alocar array de blocos");
@@ -18,9 +23,11 @@ void gerar_carga_memoria() {
 
     printf("  Alocando %d blocos de %zu bytes cada\n", qtde_bloco, tamanho_bloco);
 
+    /* Aloca e preenche cada bloco */
     for(int i = 0; i < qtde_bloco; i++) {
         blocos[i] = malloc(tamanho_bloco);
         if(blocos[i]) {
+            /* Preenche bloco com padrão para forçar alocação real */
             memset(blocos[i], i % 256, tamanho_bloco);
             printf("  Alocado bloco %d/%d\n", i + 1, qtde_bloco);
         } else {
@@ -30,6 +37,7 @@ void gerar_carga_memoria() {
         sleep(1);
     }
 
+    /* Libera toda a memória alocada */
     printf("  Liberando memória...\n");
     for(int i = 0; i < qtde_bloco; i++) {
         if(blocos[i]) {
@@ -40,6 +48,10 @@ void gerar_carga_memoria() {
     printf("  Memória liberada\n");
 }
 
+/*
+ * Programa de teste para monitor de memória.
+ * Testa leitura básica, detecção de uso de memória e múltiplas leituras.
+ */
 int main() {
     printf("TESTE DE MEMÓRIA\n");
 
@@ -61,15 +73,18 @@ int main() {
     printf("\nTESTE DE DETECÇÃO DE USO DE MEMÓRIA\n");
     metricas_memoria_t antes, durante;
 
+    /* Mede memória antes da alocação */
     get_metricas_memoria(pid, &antes);
 
-    // Alocar e manter alocado
+    /* Aloca e mantém alocado 4MB de memória */
     char* bloco1 = malloc(2 * 1024 * 1024);
     char* bloco2 = malloc(2 * 1024 * 1024);
     if(bloco1 && bloco2) memset(bloco1, 1, 2 * 1024 * 1024);
 
+    /* Mede memória durante a alocação */
     get_metricas_memoria(pid, &durante);
 
+    /* Verifica se detectou aumento no uso de memória */
     long diferenca = durante.RAM - antes.RAM;
     if(diferenca > 1024 * 1024) {
         printf("    Teste de detecção funcionando (+%ldKB)\n", diferenca / 1024);
@@ -78,6 +93,7 @@ int main() {
         printf("    Teste de detecção falhou (+%ldKB)\n", diferenca / 1024);
     }
 
+    /* Libera memória alocada para o teste */
     free(bloco1);
     free(bloco2);
 

@@ -5,12 +5,17 @@
 #include <sys/stat.h>
 #include "../include/monitor.h"
 
+/*
+ * Gera carga de I/O para testes.
+ * Cria, escreve, lê e remove um arquivo temporário.
+ */
 void gerar_carga_io()
 {
     const char *filename = "teste_io_temporario.txt";
     const int tamanho_bloco = 4096;
     const int qtde_bloco = 500;
 
+    /* Cria arquivo para escrita */
     int arquivo = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
     if(arquivo == -1){
@@ -18,6 +23,7 @@ void gerar_carga_io()
         return;
     }
 
+    /* Aloca buffer para escrita */
     char *buffer = malloc(tamanho_bloco);
     if(buffer == 0){
         perror("Erro ao alocar buffer");
@@ -25,20 +31,25 @@ void gerar_carga_io()
         return;
     }
 
+    /* Preenche buffer com dados padrão */
     for(int i = 0; i < tamanho_bloco; i++){
-        buffer[i] = 'A' + (i % 26);
+        buffer[i] = 'A' + (i % 26); /* Padrão ABC...ZABC... */
     }
 
+    /* Escreve múltiplos blocos no arquivo */
     for(int i = 0; i < qtde_bloco; i++){
         write(arquivo, buffer, tamanho_bloco);
     }
 
+    /* Libera buffer e fecha arquivo */
     free(buffer);
     close(arquivo);
 
+    /* Reabre arquivo para leitura */
     arquivo = open(filename, O_RDONLY);
     buffer = malloc(tamanho_bloco);
 
+    /* Lê os dados escritos */
     if(arquivo != -1 && buffer != 0){
         for(int i = 0; i < qtde_bloco; i++){
             read(arquivo, buffer, tamanho_bloco);
@@ -46,9 +57,15 @@ void gerar_carga_io()
         free(buffer);
         close(arquivo);
     }
+    
+    /* Remove arquivo temporário */
     unlink(filename);
 }
 
+/*
+ * Programa de teste para monitor de I/O.
+ * Testa leitura básica, detecção de I/O e múltiplas leituras.
+ */
 int main()
 {
     printf("TESTE DE I/O\n");
@@ -57,7 +74,7 @@ int main()
     pid_t pid = getpid();
     int testes_funcionando = 0;
 
-    /*Teste 1 - Leitura Básica*/
+    /* Teste 1 - Leitura Básica */
     printf("\nTESTE DE LEITURA BÁSICA");
     if(get_metricas_io(pid, &io) == 0){
         printf("\n  Teste de leitura funcionando\n");
@@ -66,14 +83,18 @@ int main()
         printf("\n  Teste de leitura falhou\n");
     }
 
-    /*Teste 2 - Detecção de I/O*/
+    /* Teste 2 - Detecção de I/O */
     printf("\nTESTE DE DETECÇÃO DE I/O");
     metricas_io_t antes, depois;
 
+    /* Mede I/O antes da carga */
     get_metricas_io(pid, &antes);
+    /* Gera carga de I/O */
     gerar_carga_io();
+    /* Mede I/O depois da carga */
     get_metricas_io(pid, &depois);
 
+    /* Verifica se detectou aumento nos bytes escritos */
     if(depois.bytes_escritos > antes.bytes_escritos){
         printf("\n  Teste de detecção funcionando (Bytes Escritos: %lu)\n", depois.bytes_escritos - antes.bytes_escritos);
         testes_funcionando++;
@@ -81,7 +102,7 @@ int main()
         printf("\n  Teste de detecção falhou\n");
     }
 
-    /*Teste 3 - Multiplas Leituras*/
+    /* Teste 3 - Múltiplas Leituras */
     printf("\nTESTE DE MULTIPLAS LEITURAS");
     int leituras_realizadas = 0;
     for(int i = 0; i < 3; i++){
@@ -98,7 +119,7 @@ int main()
         printf("\n  Teste de multiplas leituras falhou\n");
     }
 
-    /*Resultado Final*/
+    /* Resultado Final */
     printf("\nRESULTADO: %d/3 passaram\n", testes_funcionando);
     if(testes_funcionando == 3){
         printf("\nTodos os testes funcionaram\n");
