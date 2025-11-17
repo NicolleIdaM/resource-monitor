@@ -28,4 +28,9 @@ int limite_memoria_v2(const char* nome_cgroup, unsigned long memoria_mb);
 int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsigned long* bytes_escritos);
 int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned long escrever_blkIo);
 
+void experimento_throttling_cpu(void);
+void experimento_limite_memoria(void);
+void experimento_limite_io(void);
+void executar_experimentos(void);
+
 #endif
