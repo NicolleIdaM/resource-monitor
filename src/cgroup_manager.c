@@ -724,8 +724,24 @@ void experimento_throttling_cpu() {
                 medicoes++;
             }
         }
+
+        double cpu_medio = 0.0;
+        if (medicoes > 0) {
+            cpu_medio = cpu_total / medicoes;
+        }
+
+        const double DURACAO_TESTE_SEGUNDOS = 3.0;
+        double throughput = (double)iteracoes / DURACAO_TESTE_SEGUNDOS;
+
+        double desvio_percentual = 100.0;
+        if (cpu_medio > 0) {
+            double limite_esperado = limites[i] * 100.0;
+            double diferenca_absoluta = fabs(cpu_medio - limite_esperado);
+            double desvio_relativo = diferenca_absoluta / limite_esperado;
+            desvio_percentual = desvio_relativo * 100.0;
+        }
         
-        printf("%.2f\t%.1f%%\t\t%.1f%%\t\t%.0f iter/s\n", limites[i], cpu_medio, desvio, throughput);
+        printf("%.2f\t\t%.1f%%\t\t%.1f%%\t\t%.0f\n", limites[i], cpu_medio, desvio_percentual, throughput);
     }
     
     mover_cgroup("", getpid());
