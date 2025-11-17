@@ -130,3 +130,158 @@ void executar_experimentos() {
     printf("============================================\n");
     printf ("EXPERIMENTOS CONCLUÍDOS\n");
 }
+
+int main(int argc, char *argv[]) {
+    pid_t pid = getpid();
+    int intervalo = 1000;
+    int iteracoes = 10;
+    int modo_monitorar = 0;
+    int modo_detalhado = 0;
+    int executar_exps = 0;
+    char* comando_cgroup = NULL;
+    char* comando_namespace = NULL;
+    
+    static struct option opcoes_longa[] = {
+        {"pid", required_argument, 0, 'p'},
+        {"intervalo", required_argument, 0, 'i'},
+        {"iteracoes", required_argument, 0, 'n'},
+        {"monitorar", no_argument, 0, 'm'},
+        {"detalhado", no_argument, 0, 'd'},
+        {"experimentos", no_argument, 0, 'e'},
+        {"cgroup", required_argument, 0, 'c'},
+        {"namespace", required_argument, 0, 's'},
+        {"help", no_argument, 0, 'h'},
+        {0, 0, 0, 0}
+    };
+    
+    int opcao;
+    int indice_opcao = 0;
+    
+    while ((opcao = getopt_long(argc, argv, "p:i:n:mdehc:s:", opcoes_longa, &indice_opcao)) != -1) {
+        switch (opcao) {
+            case 'p':
+                pid = atoi(optarg);
+                if (pid <= 0) {
+                    printf("Erro: PID inválido: %s\n", optarg);
+                    return 1;
+                }
+                break;
+            case 'i':
+                intervalo = atoi(optarg);
+                if (intervalo <= 0) {
+                    printf("Erro: Intervalo inválido: %s\n", optarg);
+                    return 1;
+                }
+                break;
+            case 'n':
+                iteracoes = atoi(optarg);
+                if (iteracoes <= 0) {
+                    printf("Erro: Número de iterações inválido: %s\n", optarg);
+                    return 1;
+                }
+                break;
+            case 'm':
+                modo_monitorar = 1;
+                break;
+            case 'd':
+                modo_detalhado = 1;
+                break;
+            case 'e':
+                executar_exps = 1;
+                break;
+            case 'c':
+                comando_cgroup = optarg;
+                break;
+            case 's':
+                comando_namespace = optarg;
+                break;
+            case 'h':
+                mostrar_uso(argv[0]);
+                return 0;
+            default:
+                mostrar_uso(argv[0]);
+                return 1;
+        }
+    }
+    
+    printf("=== RESOURCE MONITOR ===\n");
+    printf("Sistema de profiling e análise de recursos\n\n");
+    
+    if (comando_cgroup) {
+        processar_comando_cgroup(comando_cgroup);
+        return 0;
+    }
+    
+    if (comando_namespace) {
+        processar_comando_namespace(comando_namespace);
+        return 0;
+    }
+    
+    if (executar_exps) {
+        executar_experimentos();
+        return 0;
+    }
+    
+    if (modo_monitorar) {
+        if (modo_detalhado) {
+            modo_monitoramento_detalhado(pid, intervalo, iteracoes);
+        } else {
+            monitorar_processo(pid, intervalo, iteracoes);
+        }
+        return 0;
+    }
+    
+    printf("Selecione uma opção:\n");
+    printf("1. Monitoramento em tempo real\n");
+    printf("2. Monitoramento detalhado\n");
+    printf("3. Executar experimentos obrigatórios\n");
+    printf("4. Analisar namespaces\n");
+    printf("5. Gerenciar cgroups\n");
+    printf("6. Informações do sistema\n");
+    printf("0. Sair\n");
+    
+    printf("\nOpção: ");
+    char opcao_interativa[10];
+    if (fgets(opcao_interativa, sizeof(opcao_interativa), stdin)) {
+        int escolha = atoi(opcao_interativa);
+        switch (escolha) {
+            case 1:
+                monitorar_processo(pid, intervalo, iteracoes);
+                break;
+            case 2:
+                modo_monitoramento_detalhado(pid, intervalo, iteracoes);
+                break;
+            case 3:
+                executar_experimentos();
+                break;
+            case 4:
+                listar_namespaces();
+                break;
+            case 5:
+                listar_cgroups();
+                break;
+            case 6:
+                printf("\n=== INFORMAÇÕES DO SISTEMA ===\n");
+                printf("PID atual: %d\n", getpid());
+                printf("Versão do cgroup: %d\n", detectar_cgroup_version());
+                
+                metricas_cpu_t cpu;
+                metricas_memoria_t memoria;
+                if (get_metricas_cpu(getpid(), &cpu) == 0) {
+                    printf("CPU do processo: %.1f%%\n", cpu.porcentagem_cpu);
+                }
+                if (get_metricas_memoria(getpid(), &memoria) == 0) {
+                    printf("Memória do processo: %.1f MB\n", memoria.RAM / (1024.0 * 1024.0));
+                }
+                break;
+            case 0:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida\n");
+                break;
+        }
+    }
+    
+    return 0;
+}
