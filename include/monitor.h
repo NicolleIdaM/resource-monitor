@@ -50,6 +50,7 @@ int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas);
 int get_metricas_memoria(pid_t pid, metricas_memoria_t* metricas);
 int get_metricas_io(pid_t pid, metricas_io_t* metricas);
 int get_metricas_rede(pid_t pid, metricas_rede_t* metricas);
+void experimento_overhead(void);
 void monitorar_processo(pid_t pid, int intervalo, int iteracoes);
 void resetar_estado_cpu(void);
 
