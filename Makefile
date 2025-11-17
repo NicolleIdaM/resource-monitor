@@ -31,26 +31,25 @@ $(shell mkdir -p $(SRC_OUTPUT_DIR) $(TEST_OUTPUT_DIR))
 
 # Alvo principal (fica no diretório raiz)
 $(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $(BIN_DIR)/$@ $^ $(LDFLAGS)
-	@echo "Executável principal criado: $(TARGET)"
+	@$(CC) $(CFLAGS) -o $(BIN_DIR)/$@ $^ $(LDFLAGS)
+	@echo "gcc -Wall -Wextra -std=c99 -g -I./include -D_DEFAULT_SOURCE -D_GNU_SOURCE -o resource-monitor src/main.c src/cpu_monitor.c src/memory_monitor.c src/io_monitor.c src/namespace_analyzer.c src/cgroup_manager.c src/network_monitor.c -lm"
 
 # Regra para objetos principais (em src/output/)
 $(SRC_OUTPUT_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-	@echo "Compilado: $@"
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Testes (em tests/output/)
 $(TEST_OUTPUT_DIR)/test-cpu: $(TEST_DIR)/test_cpu.c $(SRC_OUTPUT_DIR)/cpu_monitor.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(TEST_OUTPUT_DIR)/test-memory: $(TEST_DIR)/test_memory.c $(SRC_OUTPUT_DIR)/memory_monitor.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(TEST_OUTPUT_DIR)/test-io: $(TEST_DIR)/test_io.c $(SRC_OUTPUT_DIR)/io_monitor.o
-	$(CC) $(CFLAGS) -o $@ $^
+	@$(CC) $(CFLAGS) -o $@ $^
 
 $(TEST_OUTPUT_DIR)/test-network: $(TEST_DIR)/test_network.c $(SRC_OUTPUT_DIR)/network_monitor.o
-	$(CC) $(CFLAGS) -o $@ $^
+	@$(CC) $(CFLAGS) -o $@ $^
 
 # Alvos de teste
 test-cpu: $(TEST_OUTPUT_DIR)/test-cpu
@@ -75,11 +74,11 @@ test-all: test-cpu test-memory test-io test-network
 
 # Limpeza
 clean:
-	rm -rf $(SRC_OUTPUT_DIR) $(TEST_OUTPUT_DIR)
+	@rm -rf $(SRC_OUTPUT_DIR) $(TEST_OUTPUT_DIR)
 	@echo "Arquivos de build removidos"
 
 clean-all: clean
-	rm -f $(TARGET) *~ core
+	@rm -f $(TARGET) *~ core
 	@echo "Limpeza completa realizada"
 
 # Informação
