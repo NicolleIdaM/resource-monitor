@@ -63,3 +63,48 @@ void monitorar_processo(pid_t pid, int intervalo, int iteracoes) {
         usleep(intervalo * 1000);
     }
 }
+
+void modo_monitoramento_detalhado(pid_t pid, int intervalo, int iteracoes) {
+    printf("=== MODO DE MONITORAMENTO DETALHADO ===\n");
+    printf("PID: %d, Intervalo: %d ms, Iterações: %d\n\n", pid, intervalo, iteracoes);
+    
+    for (int i = 0; i < iteracoes; i++) {
+        printf("--- Iteração %d ---\n", i + 1);
+        
+        metricas_cpu_t cpu;
+        if (get_metricas_cpu(pid, &cpu) == 0) {
+            printf("CPU: %.1f%% (User: %lu ticks, System: %lu ticks)\n",
+                   cpu.porcentagem_cpu, cpu.tempo_usuario, cpu.tempo_sistema);
+            printf("Context Switches: %lu, Threads: %lu\n",
+                   cpu.context_switches, cpu.threads);
+        } else {
+            printf("CPU: Erro ao obter métricas\n");
+        }
+        
+        metricas_memoria_t memoria;
+        if (get_metricas_memoria(pid, &memoria) == 0) {
+            printf("Memória: RAM=%.1fMB, Virtual=%.1fMB, Swap=%.1fMB\n",
+                   memoria.RAM / (1024.0 * 1024.0),
+                   memoria.MV / (1024.0 * 1024.0),
+                   memoria.swap / (1024.0 * 1024.0));
+            printf("Page Faults: Menores=%lu, Maiores=%lu\n",
+                   memoria.falha_pag_menor, memoria.falha_pag_maior);
+        } else {
+            printf("Memória: Erro ao obter métricas\n");
+        }
+        
+        metricas_io_t io;
+        if (get_metricas_io(pid, &io) == 0) {
+            printf("I/O: Leitura=%luMB, Escrita=%luMB\n",
+                   io.bytes_lidos_disco / (1024 * 1024),
+                   io.bytes_escritos_disco / (1024 * 1024));
+            printf("Syscalls: Read=%lu, Write=%lu\n",
+                   io.chamadas_lidas, io.chamadas_escritas);
+        } else {
+            printf("I/O: Erro ao obter métricas\n");
+        }
+        
+        printf("\n");
+        usleep(intervalo * 1000);
+    }
+}
