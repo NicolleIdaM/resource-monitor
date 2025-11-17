@@ -84,6 +84,7 @@ O Resource Monitor é um sistema de profiling e análise que utiliza primitivas 
 - `cgroup.procs` - Gerenciamento de processos
 
 ## Fluxo de Dados
+**Fluxo**
 Processos do Sistema
         ↓
   [Interfaces do Kernel]
