@@ -710,6 +710,22 @@ void experimento_throttling_cpu() {
         metricas_cpu_t cpu;
         double cpu_total = 0;
         int medicoes = 0;
+
+        while ((clock() - inicio) < (CLOCKS_PER_SEC * 3)) {
+            volatile double resultado = 0;
+            for (int j = 0; j < 10000; j++) {
+                resultado += sqrt(j) * sin(j * 0.01);
+            }
+            (void)resultado;
+            iteracoes++;
+            
+            if (iteracoes % 1000 == 0 && get_metricas_cpu(getpid(), &cpu) == 0) {
+                cpu_total += cpu.porcentagem_cpu;
+                medicoes++;
+            }
+        }
+        
+        printf("%.2f\t%.1f%%\t\t%.1f%%\t\t%.0f iter/s\n", limites[i], cpu_medio, desvio, throughput);
     }
     
     mover_cgroup("", getpid());
