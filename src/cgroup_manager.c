@@ -697,6 +697,21 @@ void experimento_throttling_cpu() {
     printf("Limite\tCPU%% Medido\tDesvio\t\tThroughput\n");
     printf("------\t----------\t------\t\t----------\n");
     
+    for (int i = 0; i < num_limites; i++) {
+        if (limite_cpu(cgroup_name, limites[i]) != 0) {
+            printf("Erro ao aplicar limite de CPU\n");
+            continue;
+        }
+        
+        sleep(1);
+        
+        clock_t inicio = clock();
+        unsigned long iteracoes = 0;
+        metricas_cpu_t cpu;
+        double cpu_total = 0;
+        int medicoes = 0;
+    }
+    
     mover_cgroup("", getpid());
     remover_cgroup(cgroup_name);
 }
