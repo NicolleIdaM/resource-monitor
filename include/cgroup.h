@@ -11,6 +11,8 @@ typedef struct {
 } metricas_cgroup_t;
 
 int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas);
+int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas);
+int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas);
 int detectar_cgroup_version(void);
 
 int criar_cgroup(const char* nome_cgroup);
@@ -29,9 +31,13 @@ int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned l
 int remover_cgroup(const char* nome_cgroup);
 void listar_cgroups();
 
+int mover_para_root(pid_t pid);
+
 void experimento_throttling_cpu(void);
 void experimento_limite_memoria(void);
 void experimento_limite_io(void);
 void executar_experimentos(void);
+
+void formatar_memoria(char* buffer, size_t buffer_size, unsigned long bytes);
 
 #endif
