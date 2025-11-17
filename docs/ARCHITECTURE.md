@@ -41,14 +41,14 @@ O Resource Monitor é um sistema de profiling e análise que utiliza primitivas 
 **Arquivos:** `src/cpu_monitor.c`, `src/memory_monitor.c`, `src/io_monitor.c`, `src/network_monitor.c`
 
 **Funcionalidades:**
-- Coleta métricas de CPU (user time, system time, context switches)
-- Monitora uso de memória (RSS, VSZ, page faults)
-- Analisa I/O (bytes lidos/escritos, operações de disco)
-- Monitora rede (bytes rx/tx, pacotes, conexões)
-- Exporta dados em CSV/JSON para análise
+- CPU Monitor: Coleta tempo de usuário/sistema, porcentagem de CPU, context switches e threads
+- Memory Monitor: Monitora RAM, memória virtual, page faults e swap
+- I/O Monitor: Analisa bytes lidos/escritos, syscalls e operações de disco
+- Network Monitor: Monitora bytes recebidos/enviados, pacotes e conexões ativas
 
 **Interfaces:**
 - `/proc/[pid]/stat` - Estatísticas de processo
+- `/proc/[pid]/statm` - Uso de memória
 - `/proc/[pid]/io` - Métricas de I/O
 - `/proc/[pid]/net/dev` - Estatísticas de rede
 - `/proc/[pid]/status` - Status de memória
@@ -57,28 +57,30 @@ O Resource Monitor é um sistema de profiling e análise que utiliza primitivas 
 **Arquivo:** `src/namespace_analyzer.c`
 
 **Funcionalidades:**
-- Lista todos os namespaces ativos no sistema
-- Mapeia processos por namespace
-- Compara namespaces entre processos
+- Obtém informações de todos os namespaces de um processo (PID, User, Mount, Network, UTS, IPC)
+- Compara namespaces entre processos diferentes
+- Procura processos em um namespace específico
+- Lista namespaces do sistema (init, processo atual)
 - Mede overhead de criação de namespaces
-- Gera relatórios de isolamento
 
 **Interfaces:**
-- `/proc/[pid]/ns/` - Namespaces do processo
+- `/proc/[pid]/ns/` - Links simbólicos para namespaces
 - Syscalls: `setns()`, `unshare()`
-- `/proc/[pid]/status` (NSpid field)
+- `stat()` para obter inodes dos namespaces
 
 ### 3. Control Group Manager
 **Arquivo:** `src/cgroup_manager.c`
 
 **Funcionalidades:**
-- Lê métricas de cgroups (CPU, Memory, BlkIO)
+- Detecta automaticamente versão do cgroup (v1/v2)
 - Cria e remove cgroups experimentais
-- Aplica limites de recursos (CPU, memória, I/O)
+- Aplica limites de CPU, memória e I/O
 - Move processos entre cgroups
-- Mede precisão de throttling
+- Coleta métricas de uso de cgroups
+- Implementa experimentos de throttling
 
 **Interfaces:**
 - `/sys/fs/cgroup/` - Hierarquia de cgroups
-- `cpu.cfs_quota_us`, `memory.limit_in_bytes`
+- `cpu.cfs_quota_us`, `memory.limit_in_bytes` V1
+- `cpu.weight`, `memory.max` V2
 - `cgroup.procs` - Gerenciamento de processos
