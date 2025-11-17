@@ -47,5 +47,21 @@ int get_metricas_rede(pid_t pid, metricas_rede_t *metricas) {
         fclose(arquivo);
     }
 
+    snprintf(caminho, sizeof(caminho), "/proc/%d/net/tcp", pid);
+    arquivo = fopen(caminho, "r");
+    if (arquivo != NULL) {
+        char linha[512];
+        int conexoes = 0;
+        
+        while (fgets(linha, sizeof(linha), arquivo)) {
+            if (strlen(linha) > 10 && linha[0] != ' ' && linha[0] != 's') {
+                conexoes++;
+            }
+        }
+        fclose(arquivo);
+        
+        metricas->conexoes_ativas = conexoes;
+    }
+
     return 0;
 }
