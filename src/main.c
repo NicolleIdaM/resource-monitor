@@ -128,7 +128,7 @@ void executar_experimentos() {
     experimento_limite_io();
     
     printf("============================================\n");
-    printf ("EXPERIMENTOS CONCLUÍDOS\n");
+    printf("EXPERIMENTOS CONCLUÍDOS\n");
 }
 
 void processar_comando_cgroup(const char* acao) {
@@ -339,11 +339,18 @@ int main(int argc, char *argv[]) {
                 
                 metricas_cpu_t cpu;
                 metricas_memoria_t memoria;
+                metricas_cgroup_t cgroup;
+                
                 if (get_metricas_cpu(getpid(), &cpu) == 0) {
                     printf("CPU do processo: %.1f%%\n", cpu.porcentagem_cpu);
                 }
                 if (get_metricas_memoria(getpid(), &memoria) == 0) {
                     printf("Memória do processo: %.1f MB\n", memoria.RAM / (1024.0 * 1024.0));
+                }
+                if (get_metricas_cgroup(getpid(), &cgroup) == 0) {
+                    printf("CGroup: %s\n", cgroup.cgroup_version);
+                    printf("CPU usada: %s\n", cgroup.cpu_usada);
+                    printf("Memória usada: %s / %s\n", cgroup.memoria_usada, cgroup.memoria_limite);
                 }
                 break;
             case 0:
