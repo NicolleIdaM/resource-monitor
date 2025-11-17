@@ -1,4 +1,3 @@
-CPU_MONITOR.C
 #include "../include/monitor.h"
 #include <math.h>
 #include <sys/time.h>
