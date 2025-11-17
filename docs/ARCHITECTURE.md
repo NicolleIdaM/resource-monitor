@@ -28,3 +28,82 @@ resource-monitor/
 └── scripts/                    # Scripts auxiliares
     └── visualize.py            # Dashboard Python
 ```
+
+# Arquitetura do Sistema de Monitoramento
+
+## Visão Geral
+
+O Resource Monitor é um sistema de profiling e análise que utiliza primitivas do kernel Linux (namespaces e cgroups) para monitorar, limitar e analisar o uso de recursos por processos e containers.
+
+## Componentes Principais
+
+### 1. Resource Profiler
+**Arquivos:** `src/cpu_monitor.c`, `src/memory_monitor.c`, `src/io_monitor.c`, `src/network_monitor.c`
+
+**Funcionalidades:**
+- Coleta métricas de CPU (user time, system time, context switches)
+- Monitora uso de memória (RSS, VSZ, page faults)
+- Analisa I/O (bytes lidos/escritos, operações de disco)
+- Monitora rede (bytes rx/tx, pacotes, conexões)
+- Exporta dados em CSV/JSON para análise
+
+**Interfaces:**
+- `/proc/[pid]/stat` - Estatísticas de processo
+- `/proc/[pid]/io` - Métricas de I/O
+- `/proc/[pid]/net/dev` - Estatísticas de rede
+- `/proc/[pid]/status` - Status de memória
+
+### 2. Namespace Analyzer
+**Arquivo:** `src/namespace_analyzer.c`
+
+**Funcionalidades:**
+- Lista todos os namespaces ativos no sistema
+- Mapeia processos por namespace
+- Compara namespaces entre processos
+- Mede overhead de criação de namespaces
+- Gera relatórios de isolamento
+
+**Interfaces:**
+- `/proc/[pid]/ns/` - Namespaces do processo
+- Syscalls: `setns()`, `unshare()`
+- `/proc/[pid]/status` (NSpid field)
+
+### 3. Control Group Manager
+**Arquivo:** `src/cgroup_manager.c`
+
+**Funcionalidades:**
+- Lê métricas de cgroups (CPU, Memory, BlkIO)
+- Cria e remove cgroups experimentais
+- Aplica limites de recursos (CPU, memória, I/O)
+- Move processos entre cgroups
+- Mede precisão de throttling
+
+**Interfaces:**
+- `/sys/fs/cgroup/` - Hierarquia de cgroups
+- `cpu.cfs_quota_us`, `memory.limit_in_bytes`
+- `cgroup.procs` - Gerenciamento de processos
+
+## Fluxo de Dados
+Processos do Sistema
+        ↓
+  [Interfaces do Kernel]
+    /proc/[pid]/     → Coleta de métricas de processos
+    /sys/fs/cgroup/  → Controle e limites de recursos
+    /proc/[pid]/ns/  → Análise de namespaces
+        ↓
+  [Módulos Coletores]
+    CPU Monitor      → Métricas de processador
+    Memory Monitor   → Uso de memória
+    I/O Monitor      → Operações de disco
+    Network Monitor  → Tráfego de rede
+        ↓
+  [Processamento]
+    Cálculo de taxas e percentuais
+    Agregação de métricas
+    Comparação de namespaces
+    Aplicação de limites
+        ↓
+  [Saída]
+    Terminal        → Visualização em tempo real
+    CSV/JSON        → Dados para análise
+    Dashboard       → Interface visual Python
