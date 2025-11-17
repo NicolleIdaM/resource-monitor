@@ -131,6 +131,78 @@ void executar_experimentos() {
     printf ("EXPERIMENTOS CONCLUÍDOS\n");
 }
 
+void processar_comando_cgroup(const char* acao) {
+    if (strcmp(acao, "listar") == 0) {
+        listar_cgroups();
+    } else if (strncmp(acao, "criar ", 6) == 0) {
+        const char* nome = acao + 6;
+        if (criar_cgroup(nome) == 0) {
+            printf("Cgroup '%s' criado com sucesso\n", nome);
+        }
+    } else if (strncmp(acao, "remover ", 8) == 0) {
+        const char* nome = acao + 8;
+        if (remover_cgroup(nome) == 0) {
+            printf("Cgroup '%s' removido com sucesso\n", nome);
+        }
+    } else {
+        printf("Ação de cgroup inválida. Use: listar, criar NOME, ou remover NOME\n");
+    }
+}
+
+void processar_comando_namespace(const char* acao) {
+    if (strcmp(acao, "listar") == 0) {
+        listar_namespaces();
+    } else if (strncmp(acao, "comparar", 8) == 0) {
+        char* acao_copy = strdup(acao);
+        char* token = strtok(acao_copy, " ");
+        
+        if (token != NULL && strcmp(token, "comparar") == 0) {
+            token = strtok(NULL, ",");
+            if (token != NULL) {
+                char* pid1_str = token;
+                char* pid2_str = strtok(NULL, ",");
+                
+                if (pid1_str && pid2_str) {
+                    pid_t pid1 = atoi(pid1_str);
+                    pid_t pid2 = atoi(pid2_str);
+                    if (pid1 > 0 && pid2 > 0) {
+                        comparar_namespace(pid1, pid2);
+                    } else {
+                        printf("PIDs inválidos: %s, %s\n", pid1_str, pid2_str);
+                    }
+                } else {
+                    printf("Formato inválido. Use: -s 'comparar PID1,PID2'\n");
+                }
+            } else {
+                printf("Formato inválido. Use: -s 'comparar PID1,PID2'\n");
+            }
+        }
+        free(acao_copy);
+    } else if (strncmp(acao, "procurar", 8) == 0) {
+        char* acao_copy = strdup(acao);
+        char* token = strtok(acao_copy, " ");
+        
+        if (token != NULL && strcmp(token, "procurar") == 0) {
+            token = strtok(NULL, ",");
+            if (token != NULL) {
+                char* tipo = token;
+                char* id = strtok(NULL, ",");
+                
+                if (tipo && id) {
+                    procurar_processo(tipo, id);
+                } else {
+                    printf("Formato inválido. Use: -s 'procurar TIPO,ID'\n");
+                }
+            } else {
+                printf("Formato inválido. Use: -s 'procurar TIPO,ID'\n");
+            }
+        }
+        free(acao_copy);
+    } else {
+        printf("Ação de namespace inválida. Use: listar, 'comparar PID1,PID2', ou 'procurar TIPO,ID'\n");
+    }
+}
+
 int main(int argc, char *argv[]) {
     pid_t pid = getpid();
     int intervalo = 1000;
