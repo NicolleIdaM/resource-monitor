@@ -63,5 +63,33 @@ int get_metricas_rede(pid_t pid, metricas_rede_t *metricas) {
         metricas->conexoes_ativas = conexoes;
     }
 
+    if (metricas->bytes_recebidos == 0 && metricas->bytes_enviados == 0) {
+        arquivo = fopen("/proc/net/dev", "r");
+        if (arquivo != NULL) {
+            char linha[512];
+            int linha_num = 0;
+            
+            while (fgets(linha, sizeof(linha), arquivo)) {
+                linha_num++;
+                if (linha_num <= 2) continue;
+                
+                char interface[32];
+                unsigned long long bytes_recv, packets_recv, bytes_sent, packets_sent;
+                
+                if (sscanf(linha, "%31[^:]: %llu %llu %*u %*u %*u %*u %*u %*u %llu %llu",
+                          interface, &bytes_recv, &packets_recv, &bytes_sent, &packets_sent) >= 4) {
+                    
+                    if (strcmp(interface, "lo") != 0) {
+                        metricas->bytes_recebidos += bytes_recv;
+                        metricas->pacotes_recebidos += packets_recv;
+                        metricas->bytes_enviados += bytes_sent;
+                        metricas->pacotes_enviados += packets_sent;
+                    }
+                }
+            }
+            fclose(arquivo);
+        }
+    }
+
     return 0;
 }
