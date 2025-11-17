@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <sched.h>
 
 int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
     if(metricas == NULL || pid <= 0){
@@ -257,6 +260,51 @@ char* obter_tipo_namespace(const char* ns_link){
     return tipo;
 }
 
+void medir_overhead_namespaces() {
+    printf("\n=== MEDIÇÃO REAL DE OVERHEAD DE CRIAÇÃO ===\n");
+    
+    struct timeval inicio, fim;
+    const char* nomes[] = {"PID", "Network", "Mount", "UTS", "IPC", "User"};
+    int flags[] = {CLONE_NEWPID, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER};
+    const int NUM_TIPOS = 6;
+    const int NUM_TESTES = 2;
+    
+    for (int i = 0; i < NUM_TIPOS; i++) {
+        long total_micros = 0;
+        int testes_validos = 0;
+        
+        for (int teste = 0; teste < NUM_TESTES; teste++) {
+            gettimeofday(&inicio, NULL);
+            pid_t pid = fork();
+            
+            if (pid == 0) {
+                if (unshare(flags[i]) == -1) {
+                    _exit(1);
+                }
+                _exit(0);
+            } else if (pid > 0) {
+                int status;
+                waitpid(pid, &status, 0);
+                gettimeofday(&fim, NULL);
+                
+                if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                    long micros = (fim.tv_sec - inicio.tv_sec) * 1000000L + 
+                                 (fim.tv_usec - inicio.tv_usec);
+                    total_micros += micros;
+                    testes_validos++;
+                }
+            }
+            usleep(50000);
+        }
+        
+        if (testes_validos > 0) {
+            printf("  %s namespace: %ld µs\n", nomes[i], total_micros / testes_validos);
+        } else {
+            printf("  %s namespace: N/A (sem permissão)\n", nomes[i]);
+        }
+    }
+}
+
 void experimento_isolamento_namespace() {
     printf("\n=== EXPERIMENTO 2: ISOLAMENTO VIA NAMESPACES ===\n");
     
@@ -267,8 +315,7 @@ void experimento_isolamento_namespace() {
     printf("Comparação de namespaces entre processos:\n");
     for (int i = 0; i < num_pids - 1; i++) {
         for (int j = i + 1; j < num_pids; j++) {
-            printf("\n%s (PID %d) vs %s (PID %d):\n", 
-                   nomes[i], pids[i], nomes[j], pids[j]);
+            printf("\n%s (PID %d) vs %s (PID %d):\n", nomes[i], pids[i], nomes[j], pids[j]);
             int diferentes = comparar_namespace(pids[i], pids[j]);
             if (diferentes >= 0) {
                 printf("Namespaces diferentes: %d/6\n", diferentes);
@@ -276,13 +323,7 @@ void experimento_isolamento_namespace() {
         }
     }
     
-    printf("\nTempo de criação de namespaces (estimativa):\n");
-    printf("  PID namespace: ~100-200 µs\n");
-    printf("  Network namespace: ~500-1000 µs\n");
-    printf("  Mount namespace: ~200-400 µs\n");
-    printf("  UTS namespace: ~50-100 µs\n");
-    printf("  IPC namespace: ~100-200 µs\n");
-    printf("  User namespace: ~300-600 µs\n");
+    medir_overhead_namespaces(); 
     
     printf("\nProcessos por namespace no sistema:\n");
     metricas_namespace_t current_ns;
