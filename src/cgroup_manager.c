@@ -671,3 +671,21 @@ void listar_cgroups() {
 /******************************/
 /*        EXPERIMENTOS        */
 /******************************/
+void experimento_throttling_cpu() {
+    printf("\n=== EXPERIMENTO 3: THROTTLING DE CPU ===\n");
+    
+    if (geteuid() != 0) {
+        printf("AVISO: Este experimento requer privilégios de root.\n");
+        printf("Execute com: sudo ./resource-monitor -e\n");
+        return;
+    }
+
+    const char* cgroup_name = "teste_cpu_exp";
+    double limites[] = {0.25, 0.5, 1.0, 2.0};
+    int num_limites = sizeof(limites) / sizeof(limites[0]);
+    
+    if (criar_cgroup(cgroup_name) != 0) {
+        printf("Erro ao criar cgroup para experimento\n");
+        return;
+    }
+}
