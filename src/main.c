@@ -108,3 +108,25 @@ void modo_monitoramento_detalhado(pid_t pid, int intervalo, int iteracoes) {
         usleep(intervalo * 1000);
     }
 }
+
+void executar_experimentos() {
+    printf("=== EXECUTANDO EXPERIMENTOS OBRIGATÓRIOS ===\n");
+    printf("============================================\n\n");
+    
+    experimento_overhead();
+    printf("\n");
+    
+    experimento_isolamento_namespace();
+    printf("\n");
+    
+    experimento_throttling_cpu();
+    printf("\n");
+    
+    experimento_limite_memoria();
+    printf("\n");
+    
+    experimento_limite_io();
+    
+    printf("============================================\n");
+    printf ("EXPERIMENTOS CONCLUÍDOS\n");
+}
