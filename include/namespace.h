@@ -15,6 +15,7 @@ typedef struct{
 int get_infos_namespace(pid_t pid, metricas_namespace_t* ns_infos);
 int procurar_processo(const char* ns_tipo, const char* ns_id);
 int comparar_namespace(pid_t pid1, pid_t pid2);
+void experimento_isolamento_namespace(void);
 void listar_namespaces();
 char* obter_tipo_namespace(const char* ns_link);
 
