@@ -11,6 +11,9 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         errno = EINVAL;
         return -1;
     }
+    
+    metricas->swap = 0;
+
     char caminho[256];
     snprintf(caminho, sizeof(caminho), "/proc/%d/statm", pid);
 
@@ -47,25 +50,23 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         perror("Erro ao abrir arquivo stat para page faults");
         metricas -> falha_pag_menor = 0;
         metricas -> falha_pag_maior = 0;
-        metricas -> swap = 0;
-        return 0;
-    }
-
-    char linha[1024];
-    if(fgets(linha, sizeof(linha), arquivo)){
-        char *token = strtok(linha, " ");
-        int campo = 1;
-        while(token != NULL){
-            if(campo == 10){
-                metricas -> falha_pag_menor = strtoul(token, NULL, 10);
-            } else if(campo == 12){
-                metricas -> falha_pag_maior = strtoul(token, NULL, 10);
+    } else {
+        char linha[1024];
+        if(fgets(linha, sizeof(linha), arquivo)){
+            char *token = strtok(linha, " ");
+            int campo = 1;
+            while(token != NULL){
+                if(campo == 10){
+                    metricas -> falha_pag_menor = strtoul(token, NULL, 10);
+                } else if(campo == 12){
+                    metricas -> falha_pag_maior = strtoul(token, NULL, 10);
+                }
+                token = strtok(NULL, " ");
+                campo++;
             }
-            token = strtok(NULL, " ");
-            campo++;
         }
+        fclose(arquivo);
     }
-    fclose(arquivo);
 
     snprintf(caminho, sizeof(caminho), "/proc/%d/status", pid);
     arquivo = fopen(caminho, "r");
@@ -74,15 +75,13 @@ int get_metricas_memoria(pid_t pid, metricas_memoria_t *metricas){
         while(fgets(linha, sizeof(linha), arquivo)){
             if(strstr(linha, "VmSwap:")){
                 unsigned long swap_kb;
-                if (sscanf(linha, "Swap: %lu kB", &swap_kb) == 1) {
+                if (sscanf(linha, "VmSwap: %lu kB", &swap_kb) == 1) {
                     metricas->swap = swap_kb * 1024;
                 }
                 break;
             }
         }
         fclose(arquivo);
-    } else {
-        metricas->swap = 0;
     }
 
     return 0;
