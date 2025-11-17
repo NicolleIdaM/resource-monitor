@@ -1,3 +1,4 @@
+CPU_MONITOR.C
 #include "../include/monitor.h"
 #include <math.h>
 #include <sys/time.h>
@@ -13,13 +14,108 @@ static struct{
     int primeira_chamada;
 }estado_cpu = {0, 0, 0, 1};
 
+int get_metricas_cpu(pid_t pid, metricas_cpu_t* metricas){
+    if(metricas == NULL){
+        errno = EINVAL;
+        return -1;
+    }
+
+    FILE *arquivo = fopen("/proc/stat", "r");
+    if(arquivo == NULL){
+        perror("Erro ao abrir /proc/stat");
+        return -1;
+    }
+    unsigned long user, nice, system, idle, iowait, irq, softirq;
+    int leitura = fscanf(arquivo, "cpu %lu %lu %lu %lu %lu %lu %lu", 
+    &user, &nice, &system, &idle, &iowait, &irq, &softirq);
+    fclose(arquivo);
+
+    if(leitura != 7){
+        fprintf(stderr, "Erro ao ler estatísticas de CPU (lidos %d/7 campos)\n", leitura);
+        errno = EIO;
+        return -1;
+    }
+
+    unsigned long tempo_total = user + nice + system + idle + iowait + irq + softirq;
+
+    char caminho[256];
+    snprintf(caminho, sizeof(caminho), "/proc/%d/stat", pid);
+
+    FILE *arquivo_processo = fopen(caminho, "r");
+    if(arquivo_processo == NULL){
+        perror("Erro ao abrir stat do processo");
+        return -1;
+    }
+
+    unsigned long tempo_usuario, tempo_sistema;
+    char comando[256];
+    char estado;
+    int pid_lido;
+    unsigned long pag_menores, pag_maiores, qtde_threads;
+
+    leitura = fscanf(arquivo_processo, 
+    "%d %s %c %*d %*d %*d %*d %*d %*u %lu %lu %*u %*u %lu %lu %*d %*d %*d %*d %lu", 
+    &pid_lido, comando, &estado, &pag_menores, &pag_maiores, &tempo_usuario, &tempo_sistema, &qtde_threads);
+    fclose(arquivo_processo);
+
+    if(leitura != 8){
+    fprintf(stderr, "Erro ao ler estatísticas do processo (lidos %d/8 campos)\n", leitura);
+        errno = EIO;
+        return -1;
+    }
+
+    unsigned long tempo_processo = tempo_usuario + tempo_sistema;
+
+    arquivo = fopen("/proc/stat", "r");
+    unsigned long context_switches = 0;
+    if(arquivo){
+        char linha[256];
+        while(fgets(linha, sizeof(linha), arquivo)){
+            if(strstr(linha, "ctxt")){
+                sscanf(linha, "ctxt %lu", &context_switches);
+                break;
+            }
+        }
+        fclose(arquivo);
+    }
+
+    if(estado_cpu.primeira_chamada == 0){
+    unsigned long total_delta = tempo_total - estado_cpu.ultimo_tempo_total;
+    unsigned long processo_delta = tempo_processo - estado_cpu.ultimo_tempo_processo;
+
+    if(total_delta > 0){
+        metricas -> porcentagem_cpu = ((double)processo_delta / (double)total_delta) * 100.0;
+        if(metricas -> porcentagem_cpu > 100.0){
+            metricas -> porcentagem_cpu = 100.0;
+        }
+    } else {
+        metricas -> porcentagem_cpu = 0.0;
+    }
+        metricas -> context_switches = context_switches - estado_cpu.ultimo_context_switches;
+    } else {
+        metricas -> porcentagem_cpu = 0.0;
+        metricas -> context_switches = 0;
+        estado_cpu.primeira_chamada = 0;
+    }
+
+    metricas -> tempo_usuario = tempo_usuario;
+    metricas -> tempo_sistema = tempo_sistema;
+    metricas -> threads = qtde_threads;
+
+    estado_cpu.ultimo_tempo_total = tempo_total;
+    estado_cpu.ultimo_tempo_processo = tempo_processo;
+    estado_cpu.ultimo_context_switches = context_switches;
+
+    return 0;
+}
+
 void experimento_overhead() {
     printf("\n=== EXPERIMENTO 1: OVERHEAD DE MONITORAMENTO ===\n");
     
     pid_t pid = getpid();
     metricas_cpu_t cpu;
     const int iteracoes = 10000;
-    const int tamanho_workload = 1000;
+    const int workload_size = 1000;
     
     for (int i = 0; i < 1000; i++) {
         volatile double x = sqrt(i);
@@ -31,21 +127,20 @@ void experimento_overhead() {
     
     for (int i = 0; i < iteracoes; i++) {
         volatile double resultado = 0;
-        for (int j = 0; j < tamanho_workload; j++) {
+        for (int j = 0; j < workload_size; j++) {
             resultado += sqrt(i + j);
         }
         (void)resultado;
     }
     
     clock_gettime(CLOCK_MONOTONIC, &fim);
-    double tempo_sem_monitor = (fim.tv_sec - inicio.tv_sec) + 
-                              (fim.tv_nsec - inicio.tv_nsec) / 1e9;
+    double tempo_sem_monitor = (fim.tv_sec - inicio.tv_sec) + (fim.tv_nsec - inicio.tv_nsec) / 1e9;
     
     clock_gettime(CLOCK_MONOTONIC, &inicio);
     
     for (int i = 0; i < iteracoes; i++) {
         volatile double resultado = 0;
-        for (int j = 0; j < tamanho_workload; j++) {
+        for (int j = 0; j < workload_size; j++) {
             resultado += sqrt(i + j);
         }
         (void)resultado;
