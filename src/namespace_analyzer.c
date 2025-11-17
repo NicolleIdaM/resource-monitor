@@ -1,5 +1,3 @@
-#define _DEFAULT_SOURCE
-
 #include "../include/monitor.h"
 #include "../include/namespace.h"
 #include <dirent.h>
@@ -257,4 +255,41 @@ char* obter_tipo_namespace(const char* ns_link){
     
     strncpy(tipo, "desconhecido", sizeof(tipo) - 1);
     return tipo;
+}
+
+void experimento_isolamento_namespace() {
+    printf("\n=== EXPERIMENTO 2: ISOLAMENTO VIA NAMESPACES ===\n");
+    
+    pid_t pids[] = {getppid(), getpid()};
+    const char* nomes[] = {"processo pai", "processo atual"};
+    int num_pids = sizeof(pids) / sizeof(pids[0]);
+    
+    printf("Comparação de namespaces entre processos:\n");
+    for (int i = 0; i < num_pids - 1; i++) {
+        for (int j = i + 1; j < num_pids; j++) {
+            printf("\n%s (PID %d) vs %s (PID %d):\n", 
+                   nomes[i], pids[i], nomes[j], pids[j]);
+            int diferentes = comparar_namespace(pids[i], pids[j]);
+            if (diferentes >= 0) {
+                printf("Namespaces diferentes: %d/6\n", diferentes);
+            }
+        }
+    }
+    
+    printf("\nTempo de criação de namespaces (estimativa):\n");
+    printf("  PID namespace: ~100-200 µs\n");
+    printf("  Network namespace: ~500-1000 µs\n");
+    printf("  Mount namespace: ~200-400 µs\n");
+    printf("  UTS namespace: ~50-100 µs\n");
+    printf("  IPC namespace: ~100-200 µs\n");
+    printf("  User namespace: ~300-600 µs\n");
+    
+    printf("\nProcessos por namespace no sistema:\n");
+    metricas_namespace_t current_ns;
+    if (get_infos_namespace(getpid(), &current_ns) == 0) {
+        char ns_id[32];
+        snprintf(ns_id, sizeof(ns_id), "%lu", current_ns.pid_namespace);
+        printf("Processos no mesmo PID namespace: ");
+        procurar_processo("pid", ns_id);
+    }
 }
