@@ -11,6 +11,10 @@
 #include <sys/wait.h>
 #include <sched.h>
 
+/*
+ * Obtém informações de namespaces de um processo específico.
+ * Lê os inodes dos links simbólicos em /proc/[pid]/ns/ para identificar namespaces.
+ */
 int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
     if(metricas == NULL || pid <= 0){
         errno = EINVAL;
@@ -21,6 +25,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
     struct stat numero_inode;
     int sucesso = 0;
 
+    /* Inicializa todos os namespaces com 0 */
     metricas->pid_namespace = 0;
     metricas->usuario_namespace = 0;
     metricas->filesystem_namespace = 0;
@@ -28,6 +33,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
     metricas->hostname_namespace = 0;
     metricas->ipc_namespace = 0;
 
+    /* Lê namespace de PID */
     snprintf(caminho, sizeof(caminho), "/proc/%d/ns/pid", pid);
     if(stat(caminho, &numero_inode) == 0){
         metricas->pid_namespace = numero_inode.st_ino;
@@ -36,6 +42,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
         perror("Erro ao acessar pid namespace");
     }
 
+    /* Lê namespace de usuário */
     snprintf(caminho, sizeof(caminho), "/proc/%d/ns/user", pid);
     if(stat(caminho, &numero_inode) == 0){
         metricas->usuario_namespace = numero_inode.st_ino;
@@ -44,6 +51,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
         perror("Erro ao acessar user namespace");
     }
 
+    /* Lê namespace de filesystem (mount) */
     snprintf(caminho, sizeof(caminho), "/proc/%d/ns/mnt", pid);
     if(stat(caminho, &numero_inode) == 0){
         metricas->filesystem_namespace = numero_inode.st_ino;
@@ -52,6 +60,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
         perror("Erro ao acessar mnt namespace");
     }
 
+    /* Lê namespace de rede */
     snprintf(caminho, sizeof(caminho), "/proc/%d/ns/net", pid);
     if(stat(caminho, &numero_inode) == 0){
         metricas->net_namespace = numero_inode.st_ino;
@@ -60,6 +69,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
         perror("Erro ao acessar net namespace");
     }
 
+    /* Lê namespace de hostname (UTS) */
     snprintf(caminho, sizeof(caminho), "/proc/%d/ns/uts", pid);
     if(stat(caminho, &numero_inode) == 0){
         metricas->hostname_namespace = numero_inode.st_ino;
@@ -68,6 +78,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
         perror("Erro ao acessar uts namespace");
     }
 
+    /* Lê namespace de IPC */
     snprintf(caminho, sizeof(caminho), "/proc/%d/ns/ipc", pid);
     if(stat(caminho, &numero_inode) == 0){
         metricas->ipc_namespace = numero_inode.st_ino;
@@ -76,6 +87,7 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
         perror("Erro ao acessar ipc namespace");
     }
 
+    /* Verifica se conseguiu ler algum namespace */
     if (sucesso == 0) {
         fprintf(stderr, "Erro: não foi possível ler nenhum namespace para PID %d\n", pid);
         errno = ENOENT;
@@ -86,6 +98,10 @@ int get_infos_namespace(pid_t pid, metricas_namespace_t* metricas){
     return 0;
 }
 
+/*
+ * Compara os namespaces de dois processos.
+ * Retorna o número de namespaces que são diferentes.
+ */
 int comparar_namespace(pid_t pid1, pid_t pid2){
     if (pid1 <= 0 || pid2 <= 0) {
         errno = EINVAL;
@@ -94,11 +110,13 @@ int comparar_namespace(pid_t pid1, pid_t pid2){
 
     metricas_namespace_t namespace1, namespace2;
 
+    /* Obtém namespaces do primeiro processo */
     if(get_infos_namespace(pid1, &namespace1) == -1){
         fprintf(stderr, "Erro ao obter namespaces para PID %d\n", pid1);
         return -1;
     }
 
+    /* Obtém namespaces do segundo processo */
     if(get_infos_namespace(pid2, &namespace2) == -1){
         fprintf(stderr, "Erro ao obter namespaces para PID %d\n", pid2);
         return -1;
@@ -106,6 +124,7 @@ int comparar_namespace(pid_t pid1, pid_t pid2){
 
     int diferentes = 0;
     
+    /* Compara cada namespace individualmente */
     if(namespace1.pid_namespace != namespace2.pid_namespace){
         printf("  PID Namespace diferente: %lu vs %lu\n", 
                namespace1.pid_namespace, namespace2.pid_namespace);
@@ -146,6 +165,11 @@ int comparar_namespace(pid_t pid1, pid_t pid2){
     return diferentes;
 }
 
+/*
+ * Procura todos os processos que estão em um namespace específico.
+ * ns_tipo: tipo de namespace (pid, user, net, etc)
+ * ns_id: inode do namespace a ser procurado
+ */
 int procurar_processo(const char* ns_tipo, const char* ns_id){
     if (ns_tipo == NULL || ns_id == NULL) {
         errno = EINVAL;
@@ -157,6 +181,7 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
     char caminho[512];
     char namespace_caminho[512];
     
+    /* Converte string do ID para número */
     char *endptr;
     unsigned long ns_inode = strtoul(ns_id, &endptr, 10);
     if (endptr == ns_id || *endptr != '\0') {
@@ -165,6 +190,7 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
         return -1;
     }
 
+    /* Abre diretório /proc para listar todos os processos */
     dir = opendir("/proc");
     if(dir == NULL){
         perror("Erro ao abrir o diretorio /proc");
@@ -174,22 +200,29 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
     printf("Processos no namespace %s [%s]:\n", ns_tipo, ns_id);
     int processos_encontrados = 0;
 
+    /* Itera por todas as entradas do diretório /proc */
     while((entrada_diretorio = readdir(dir)) != NULL){
+        /* Filtra apenas diretórios que são PIDs numéricos */
         if(entrada_diretorio->d_type == DT_DIR){
             int pid = atoi(entrada_diretorio->d_name);
             if(pid > 0){
+                /* Constrói caminho para o namespace específico do processo */
                 snprintf(namespace_caminho, sizeof(namespace_caminho), 
                         "/proc/%s/ns/%s", entrada_diretorio->d_name, ns_tipo);
                 
+                /* Lê inode do namespace */
                 struct stat numero_inode;
                 if(stat(namespace_caminho, &numero_inode) == 0){
+                    /* Verifica se o inode corresponde ao procurado */
                     if(numero_inode.st_ino == ns_inode){
+                        /* Obtém nome do comando do processo */
                         snprintf(caminho, sizeof(caminho), "/proc/%s/comm", entrada_diretorio->d_name);
                         
                         FILE *arquivo_comando = fopen(caminho, "r");
                         char comando[256] = "desconhecido";
                         if(arquivo_comando){
                             if (fgets(comando, sizeof(comando), arquivo_comando) != NULL) {
+                                /* Remove newline do final */
                                 comando[strcspn(comando, "\n")] = 0;
                             }
                             fclose(arquivo_comando);
@@ -216,11 +249,16 @@ int procurar_processo(const char* ns_tipo, const char* ns_id){
     return processos_encontrados;
 }
 
+/*
+ * Lista namespaces de processos importantes (init, processo atual)
+ */
 void listar_namespaces(){
+    /* PIDs a serem analisados: init (1), processo atual, e terminador (0) */
     pid_t pids[] = {1, getpid(), 0};
     const char* nomes[] = {"init (PID 1)", "Processo Atual", ""};
     int sucesso_total = 0;
 
+    /* Itera pelos PIDs e mostra seus namespaces */
     for(int i = 0; pids[i] != 0; i++){
         metricas_namespace_t metricas;
         if(get_infos_namespace(pids[i], &metricas) == 0){
@@ -243,6 +281,10 @@ void listar_namespaces(){
     }
 }
 
+/*
+ * Extrai o tipo de namespace a partir de um link simbólico.
+ * Exemplo: "/proc/123/ns/pid" -> "pid"
+ */
 char* obter_tipo_namespace(const char* ns_link){
     if (ns_link == NULL) {
         return "desconhecido";
@@ -251,6 +293,7 @@ char* obter_tipo_namespace(const char* ns_link){
     static char tipo[32];
     const char *prefixo = strrchr(ns_link, '/');
     if(prefixo){
+        /* Copia o texto após a última barra */
         strncpy(tipo, prefixo + 1, sizeof(tipo) - 1);
         tipo[sizeof(tipo) - 1] = '\0';
         return tipo;
@@ -260,6 +303,10 @@ char* obter_tipo_namespace(const char* ns_link){
     return tipo;
 }
 
+/*
+ * Mede o overhead de criação de namespaces usando unshare().
+ * Testa a criação de cada tipo de namespace individualmente.
+ */
 void medir_overhead_namespaces() {
     printf("\n=== MEDIÇÃO REAL DE OVERHEAD DE CRIAÇÃO ===\n");
     
@@ -267,26 +314,31 @@ void medir_overhead_namespaces() {
     const char* nomes[] = {"PID", "Network", "Mount", "UTS", "IPC", "User"};
     int flags[] = {CLONE_NEWPID, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER};
     const int NUM_TIPOS = 6;
-    const int NUM_TESTES = 2;
+    const int NUM_TESTES = 2; /* Número de testes por namespace para média */
     
+    /* Testa cada tipo de namespace */
     for (int i = 0; i < NUM_TIPOS; i++) {
         long total_micros = 0;
         int testes_validos = 0;
         
+        /* Executa múltiplos testes para obter uma média */
         for (int teste = 0; teste < NUM_TESTES; teste++) {
             gettimeofday(&inicio, NULL);
             pid_t pid = fork();
             
             if (pid == 0) {
+                /* Processo filho: tenta criar o namespace */
                 if (unshare(flags[i]) == -1) {
-                    _exit(1);
+                    _exit(1); /* Falha na criação */
                 }
-                _exit(0);
+                _exit(0); /* Sucesso */
             } else if (pid > 0) {
+                /* Processo pai: espera filho terminar e mede tempo */
                 int status;
                 waitpid(pid, &status, 0);
                 gettimeofday(&fim, NULL);
                 
+                /* Só conta se o filho terminou com sucesso */
                 if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
                     long micros = (fim.tv_sec - inicio.tv_sec) * 1000000L + 
                                  (fim.tv_usec - inicio.tv_usec);
@@ -294,9 +346,10 @@ void medir_overhead_namespaces() {
                     testes_validos++;
                 }
             }
-            usleep(50000);
+            usleep(50000); /* Pequena pausa entre testes */
         }
         
+        /* Mostra resultado médio */
         if (testes_validos > 0) {
             printf("  %s namespace: %ld µs\n", nomes[i], total_micros / testes_validos);
         } else {
@@ -305,14 +358,20 @@ void medir_overhead_namespaces() {
     }
 }
 
+/*
+ * Experimento completo de análise de namespaces.
+ * Compara namespaces entre processos e mede overhead de criação.
+ */
 void experimento_isolamento_namespace() {
     printf("\n=== EXPERIMENTO 2: ISOLAMENTO VIA NAMESPACES ===\n");
     
+    /* PIDs a serem comparados: processo pai e processo atual */
     pid_t pids[] = {getppid(), getpid()};
     const char* nomes[] = {"processo pai", "processo atual"};
     int num_pids = sizeof(pids) / sizeof(pids[0]);
     
     printf("Comparação de namespaces entre processos:\n");
+    /* Compara cada par de processos */
     for (int i = 0; i < num_pids - 1; i++) {
         for (int j = i + 1; j < num_pids; j++) {
             printf("\n%s (PID %d) vs %s (PID %d):\n", nomes[i], pids[i], nomes[j], pids[j]);
@@ -323,8 +382,10 @@ void experimento_isolamento_namespace() {
         }
     }
     
+    /* Mede overhead de criação de namespaces */
     medir_overhead_namespaces(); 
     
+    /* Lista processos no mesmo namespace do processo atual */
     printf("\nProcessos por namespace no sistema:\n");
     metricas_namespace_t current_ns;
     if (get_infos_namespace(getpid(), &current_ns) == 0) {

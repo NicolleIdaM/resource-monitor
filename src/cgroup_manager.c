@@ -9,6 +9,10 @@
 #include <string.h>
 #include <stdarg.h>
 
+/*
+ * Função auxiliar para escrever em arquivos do cgroup com formatação.
+ * Similar ao fprintf, mas abre/fecha o arquivo automaticamente.
+ */
 static int escrever_arquivo(const char* caminho, const char* formato, ...) {
     if (caminho == NULL || formato == NULL) {
         errno = EINVAL;
@@ -36,13 +40,19 @@ static int escrever_arquivo(const char* caminho, const char* formato, ...) {
     return 0;
 }
 
+/*
+ * Detecta qual versão do cgroup está em uso no sistema.
+ * Retorna 1 para cgroup v1, 2 para v2, ou 0 se não suportado.
+ */
 int detectar_cgroup_version(void) {
     struct stat st;
     
+    /* cgroup v2: verifica se existe cgroup.controllers */
     if (stat("/sys/fs/cgroup/cgroup.controllers", &st) == 0) {
         return 2;
     }
     
+    /* cgroup v1: verifica se existe diretório cpu */
     if (stat("/sys/fs/cgroup/cpu", &st) == 0) {
         return 1;
     }
@@ -50,12 +60,17 @@ int detectar_cgroup_version(void) {
     return 0;
 }
 
+/*
+ * Cria um novo cgroup com o nome especificado.
+ * Suporta ambas as versões do cgroup automaticamente.
+ */
 int criar_cgroup(const char* nome_cgroup) {
     if (nome_cgroup == NULL || strlen(nome_cgroup) == 0) {
         errno = EINVAL;
         return -1;
     }
 
+    /* Cgroups geralmente requerem privilégios de root */
     if (geteuid() != 0) {
         printf("Aviso: Cgroups requerem privilégios de root. Execute com 'sudo'\n");
         errno = EACCES;
@@ -69,12 +84,14 @@ int criar_cgroup(const char* nome_cgroup) {
     } else if (version == 1) {
         char caminho[512];
 
+        /* Cria diretório do cgroup para CPU (v1) */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/cpu/%s", nome_cgroup);
         if (mkdir(caminho, 0755) != 0 && errno != EEXIST) {
             perror("Erro ao criar Cgroup CPU");
             return -1;
         }
 
+        /* Cria diretório do cgroup para Memory (v1) */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/memory/%s", nome_cgroup);
         if (mkdir(caminho, 0755) != 0 && errno != EEXIST) {
             perror("Erro ao criar cgroup Memory");
@@ -90,6 +107,10 @@ int criar_cgroup(const char* nome_cgroup) {
     }
 }
 
+/*
+ * Cria um cgroup específico para a versão 2.
+ * Habilita controladores de CPU, memória e I/O automaticamente.
+ */
 int criar_cgroup_v2(const char* nome_cgroup) {
     if (nome_cgroup == NULL || strlen(nome_cgroup) == 0) {
         errno = EINVAL;
@@ -106,6 +127,7 @@ int criar_cgroup_v2(const char* nome_cgroup) {
         return -1;
     }
     
+    /* Cria diretório do cgroup v2 */
     size_t escrito = snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s", nome_cgroup);
     if (escrito >= sizeof(caminho)) {
         printf("Erro: nome do cgroup muito longo\n");
@@ -118,6 +140,7 @@ int criar_cgroup_v2(const char* nome_cgroup) {
         return -1;
     }
     
+    /* Habilita controladores no cgroup (CPU, memória, I/O) */
     escrito = snprintf(controladores, sizeof(controladores), "%s/cgroup.subtree_control", caminho);
     if (escrito >= sizeof(controladores)) {
         printf("Aviso: caminho muito longo para controladores\n");
@@ -132,6 +155,10 @@ int criar_cgroup_v2(const char* nome_cgroup) {
     return 0;
 }
 
+/*
+ * Move um processo para um cgroup específico.
+ * Suporta ambas as versões do cgroup automaticamente.
+ */
 int mover_cgroup(const char* nome_cgroup, pid_t pid) {
     if (nome_cgroup == NULL || strlen(nome_cgroup) == 0 || pid <= 0) {
         errno = EINVAL;
@@ -145,18 +172,21 @@ int mover_cgroup(const char* nome_cgroup, pid_t pid) {
     snprintf(pid_str, sizeof(pid_str), "%d", pid);
 
     if (version == 2) {
+        /* Move processo para cgroup v2 */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/cgroup.procs", nome_cgroup);
         if (escrever_arquivo(caminho, "%s", pid_str) != 0) {
             perror("Erro ao mover processo para cgroup v2");
             return -1;
         }
     } else if (version == 1) {
+        /* Move processo para cgroup CPU v1 */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/cpu/%s/cgroup.procs", nome_cgroup);
         if (escrever_arquivo(caminho, "%s", pid_str) != 0) {
             perror("Erro ao mover processo para cgroup CPU v1");
             return -1;
         }
 
+        /* Move processo para cgroup Memory v1 */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/memory/%s/cgroup.procs", nome_cgroup);
         if (escrever_arquivo(caminho, "%s", pid_str) != 0) {
             perror("Erro ao mover processo para cgroup Memory v1");
@@ -172,6 +202,10 @@ int mover_cgroup(const char* nome_cgroup, pid_t pid) {
     return 0;
 }
 
+/*
+ * Define limite de CPU para cgroup v1 usando CFS (Completely Fair Scheduler).
+ * cpu_cores: número de cores de CPU (ex: 0.5 = meio core, 2.0 = dois cores)
+ */
 int limite_cpu_v1(const char* nome_cgroup, double cpu_cores) {
     if (nome_cgroup == NULL || cpu_cores < 0) {
         errno = EINVAL;
@@ -179,14 +213,17 @@ int limite_cpu_v1(const char* nome_cgroup, double cpu_cores) {
     }
 
     char caminho[512];
+    /* Converte cores para microseconds (100ms = 100000µs) */
     int quota = (int)(cpu_cores * 100000.0);
 
+    /* Define quota de CPU (tempo máximo que pode usar em cada período) */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us", nome_cgroup);
     if (escrever_arquivo(caminho, "%d", quota) != 0) {
         perror("Erro ao definir limite de CPU v1");
         return -1;
     }
 
+    /* Define período padrão de 100ms */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/cpu/%s/cpu.cfs_period_us", nome_cgroup);
     if (escrever_arquivo(caminho, "100000") != 0) {
         printf("Aviso: não foi possível configurar período de CPU\n");
@@ -196,6 +233,10 @@ int limite_cpu_v1(const char* nome_cgroup, double cpu_cores) {
     return 0;
 }
 
+/*
+ * Define limite de CPU para cgroup v2 usando peso e limites máximos.
+ * cpu_cores: número de cores de CPU (usa peso para alocação proporcional)
+ */
 int limite_cpu_v2(const char* nome_cgroup, double cpu_cores) {
     if (nome_cgroup == NULL || cpu_cores < 0) {
         errno = EINVAL;
@@ -211,16 +252,19 @@ int limite_cpu_v2(const char* nome_cgroup, double cpu_cores) {
         return -1;
     }
 
+    /* Calcula peso (1-10000), onde 100 = 1 core padrão */
     unsigned int peso = (unsigned int)(cpu_cores * 100.0);
     if (peso < 1) peso = 1;
     if (peso > 10000) peso = 10000;
     
+    /* Define peso de CPU (alocação proporcional) */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/cpu.weight", nome_cgroup);
     if (escrever_arquivo(caminho, "%u", peso) != 0) {
         perror("Erro ao definir peso de CPU v2");
         return -1;
     }
     
+    /* Para limites rígidos (< 1 core), define máximo absoluto */
     if (cpu_cores < 1.0) {
         unsigned int max = (unsigned int)(cpu_cores * 100000.0);
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/cpu.max", nome_cgroup);
@@ -234,6 +278,9 @@ int limite_cpu_v2(const char* nome_cgroup, double cpu_cores) {
     return 0;
 }
 
+/*
+ * Define limite de CPU (versão genérica que detecta automaticamente a versão)
+ */
 int limite_cpu(const char* nome_cgroup, double cpu_cores) {
     if (nome_cgroup == NULL || cpu_cores < 0) {
         errno = EINVAL;
@@ -253,6 +300,10 @@ int limite_cpu(const char* nome_cgroup, double cpu_cores) {
     }
 }
 
+/*
+ * Define limite de memória para cgroup v1
+ * memoria_mb: limite máximo de memória em megabytes
+ */
 int limite_memoria_v1(const char* nome_cgroup, unsigned long memoria_mb) {
     if (nome_cgroup == NULL) {
         errno = EINVAL;
@@ -262,6 +313,7 @@ int limite_memoria_v1(const char* nome_cgroup, unsigned long memoria_mb) {
     char caminho[512];
     unsigned long memoria_bytes = memoria_mb * 1024 * 1024;
 
+    /* Define limite máximo de memória em bytes */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/memory/%s/memory.limit_in_bytes", nome_cgroup);
     if (escrever_arquivo(caminho, "%lu", memoria_bytes) != 0) {
         perror("Erro ao definir limite de memória v1");
@@ -272,6 +324,10 @@ int limite_memoria_v1(const char* nome_cgroup, unsigned long memoria_mb) {
     return 0;
 }
 
+/*
+ * Define limite de memória para cgroup v2
+ * memoria_mb: limite máximo de memória em megabytes
+ */
 int limite_memoria_v2(const char* nome_cgroup, unsigned long memoria_mb) {
     if (nome_cgroup == NULL) {
         errno = EINVAL;
@@ -289,12 +345,14 @@ int limite_memoria_v2(const char* nome_cgroup, unsigned long memoria_mb) {
     
     unsigned long memoria_bytes = memoria_mb * 1024 * 1024;
     
+    /* Define limite máximo de memória */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/memory.max", nome_cgroup);
     if (escrever_arquivo(caminho, "%lu", memoria_bytes) != 0) {
         perror("Erro ao definir limite de memória v2");
         return -1;
     }
     
+    /* Define limite de swap (igual ao de memória para evitar uso excessivo) */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/memory.swap.max", nome_cgroup);
     if (escrever_arquivo(caminho, "%lu", memoria_bytes) != 0) {
         printf("Aviso: não foi possível configurar limite de swap\n");
@@ -305,6 +363,9 @@ int limite_memoria_v2(const char* nome_cgroup, unsigned long memoria_mb) {
     return 0;
 }
 
+/*
+ * Define limite de memória (versão genérica)
+ */
 int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
     if (nome_cgroup == NULL) {
         errno = EINVAL;
@@ -324,6 +385,11 @@ int limite_memoria(const char* nome_cgroup, unsigned long memoria_mb) {
     }
 }
 
+/*
+ * Define limites de I/O (leitura e escrita) para o cgroup
+ * bytes_leitura_por_segundo: throughput máximo de leitura
+ * bytes_escrita_por_segundo: throughput máximo de escrita
+ */
 int limite_io(const char* nome_cgroup, unsigned long bytes_leitura_por_segundo, unsigned long bytes_escrita_por_segundo) {
     if (nome_cgroup == NULL) {
         errno = EINVAL;
@@ -334,6 +400,7 @@ int limite_io(const char* nome_cgroup, unsigned long bytes_leitura_por_segundo, 
     int version = detectar_cgroup_version();
     
     if (version == 2) {
+        /* cgroup v2: usa io.max para limites absolutos */
         if (bytes_leitura_por_segundo > 0 || bytes_escrita_por_segundo > 0) {
             printf("Configurando limites de I/O para cgroup v2...\n");
             
@@ -341,6 +408,7 @@ int limite_io(const char* nome_cgroup, unsigned long bytes_leitura_por_segundo, 
             FILE *arquivo = fopen(caminho, "w");
             if (arquivo != NULL) {
                 int escrito = 0;
+                /* 8:0 representa o dispositivo principal (sda) */
                 if (bytes_leitura_por_segundo > 0 && bytes_escrita_por_segundo > 0) {
                     escrito = fprintf(arquivo, "8:0 rbps=%lu wbps=%lu", 
                                      bytes_leitura_por_segundo, bytes_escrita_por_segundo);
@@ -357,6 +425,7 @@ int limite_io(const char* nome_cgroup, unsigned long bytes_leitura_por_segundo, 
                 }
             }
             
+            /* Método alternativo se io.max falhar */
             printf("Tentando método alternativo para I/O...\n");
             snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/io.weight", nome_cgroup);
             if (escrever_arquivo(caminho, "default 100") == 0) {
@@ -367,6 +436,7 @@ int limite_io(const char* nome_cgroup, unsigned long bytes_leitura_por_segundo, 
             printf("Considere verificar: /sys/fs/cgroup/io.max e permissões do sistema\n");
         }
     } else if (version == 1) {
+        /* cgroup v1: usa blkio.throttle para limites */
         if (bytes_leitura_por_segundo > 0) {
             snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s/blkio.throttle.read_bps_device", nome_cgroup);
             if (escrever_arquivo(caminho, "8:0 %lu", bytes_leitura_por_segundo) != 0) {
@@ -399,6 +469,9 @@ int limite_io(const char* nome_cgroup, unsigned long bytes_leitura_por_segundo, 
     return 0;
 }
 
+/*
+ * Remove um cgroup e move todos os processos de volta para o root
+ */
 int remover_cgroup(const char* nome_cgroup) {
     if (nome_cgroup == NULL) {
         errno = EINVAL;
@@ -410,6 +483,7 @@ int remover_cgroup(const char* nome_cgroup) {
     int version = detectar_cgroup_version();
 
     if (version == 2) {
+        /* cgroup v2: move processos para root antes de remover */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/cgroup.procs", nome_cgroup);
         FILE *arquivo = fopen(caminho, "r");
         if (arquivo) {
@@ -423,8 +497,9 @@ int remover_cgroup(const char* nome_cgroup) {
             fclose(arquivo);
         }
 
-        usleep(100000);
+        usleep(100000); /* Espera processos se moverem */
 
+        /* Remove diretório do cgroup */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s", nome_cgroup);
         if (rmdir(caminho) == 0) {
             printf("Cgroup v2 '%s' removido\n", nome_cgroup);
@@ -437,9 +512,11 @@ int remover_cgroup(const char* nome_cgroup) {
             }
         }
     } else if (version == 1) {
+        /* cgroup v1: remove de todos os controladores */
         char* controladores[] = {"cpu", "memory", "blkio"};
         int num_controladores = sizeof(controladores) / sizeof(controladores[0]);
         
+        /* Move processos para root em todos os controladores */
         for (int i = 0; i < num_controladores; i++) {
             snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/%s/cgroup.procs", 
                      controladores[i], nome_cgroup);
@@ -455,9 +532,10 @@ int remover_cgroup(const char* nome_cgroup) {
                 fclose(arquivo);
             }
             
-            usleep(50000);
+            usleep(50000); /* Pequena espera entre controladores */
         }
 
+        /* Remove diretórios de todos os controladores */
         for (int i = 0; i < num_controladores; i++) {
             snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/%s", 
                      controladores[i], nome_cgroup);
@@ -485,6 +563,9 @@ int remover_cgroup(const char* nome_cgroup) {
     }
 }
 
+/*
+ * Lista todos os cgroups existentes no sistema
+ */
 void listar_cgroups() {
     DIR *dir;
     struct dirent *entrada_diretorio;
@@ -498,6 +579,7 @@ void listar_cgroups() {
         if (dir) {
             int count = 0;
             while ((entrada_diretorio = readdir(dir)) != NULL) {
+                /* Ignora diretórios especiais (. e ..) */
                 if (entrada_diretorio->d_type == DT_DIR && 
                     entrada_diretorio->d_name[0] != '.' &&
                     strcmp(entrada_diretorio->d_name, "..") != 0) {
@@ -513,6 +595,7 @@ void listar_cgroups() {
     } else if (version == 1) {
         int count_cpu = 0, count_memory = 0;
 
+        /* Lista cgroups de CPU */
         printf("\nCgroups de CPU:\n");
         dir = opendir("/sys/fs/cgroup/cpu");
         if (dir) {
@@ -530,6 +613,7 @@ void listar_cgroups() {
             perror("Erro ao abrir diretório de cgroups CPU");
         }
 
+        /* Lista cgroups de Memória */
         printf("\nCgroups de Memória:\n");
         dir = opendir("/sys/fs/cgroup/memory");
         if (dir) {
@@ -551,12 +635,16 @@ void listar_cgroups() {
     }
 }
 
+/*
+ * Obtém métricas de uso do cgroup para um processo específico
+ */
 int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas) {
     if (metricas == NULL || pid <= 0) {
         errno = EINVAL;
         return -1;
     }
 
+    /* Valores padrão caso não consiga obter métricas */
     strncpy(metricas->cpu_usada, "N/A", sizeof(metricas->cpu_usada) - 1);
     strncpy(metricas->memoria_usada, "N/A", sizeof(metricas->memoria_usada) - 1);
     strncpy(metricas->memoria_limite, "N/A", sizeof(metricas->memoria_limite) - 1);
@@ -575,11 +663,15 @@ int get_metricas_cgroup(pid_t pid, metricas_cgroup_t* metricas) {
     }
 }
 
+/*
+ * Obtém métricas de cgroup para a versão 1
+ */
 int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas) {
     char caminho[512];
     char linha[256];
     FILE *arquivo;
     
+    /* Lê arquivo cgroup do processo para descobrir seu cgroup */
     snprintf(caminho, sizeof(caminho), "/proc/%d/cgroup", pid);
     arquivo = fopen(caminho, "r");
     if (arquivo == NULL) {
@@ -589,6 +681,7 @@ int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas) {
     char cgroup_path[128] = "";
     int cgroup_encontrado = 0;
     
+    /* Parse do arquivo cgroup para encontrar o path do cgroup */
     while (fgets(linha, sizeof(linha), arquivo)) {
         if (strstr(linha, "cpu,") || strstr(linha, "cpu:")) {
             char *path = strchr(linha, ':');
@@ -614,10 +707,12 @@ int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas) {
     }
     fclose(arquivo);
     
+    /* Se não encontrou cgroup específico, usa root */
     if (!cgroup_encontrado || strlen(cgroup_path) > 100) {
         strcpy(cgroup_path, "");
     }
     
+    /* Obtém uso de CPU */
     if (strlen(cgroup_path) == 0) {
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/cpu/cpuacct.usage");
     } else {
@@ -628,12 +723,14 @@ int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas) {
     if (arquivo != NULL) {
         unsigned long long cpu_usage;
         if (fscanf(arquivo, "%llu", &cpu_usage) == 1) {
+            /* Converte nanosegundos para segundos */
             double cpu_seconds = cpu_usage / 1e9;
             snprintf(metricas->cpu_usada, sizeof(metricas->cpu_usada), "%.2fs", cpu_seconds);
         }
         fclose(arquivo);
     }
     
+    /* Obtém uso de memória */
     if (strlen(cgroup_path) == 0) {
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/memory/memory.usage_in_bytes");
     } else {
@@ -649,6 +746,7 @@ int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas) {
         fclose(arquivo);
     }
     
+    /* Obtém limite de memória */
     if (strlen(cgroup_path) == 0) {
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/memory/memory.limit_in_bytes");
     } else {
@@ -660,6 +758,7 @@ int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas) {
         unsigned long memory_limit;
         if (fscanf(arquivo, "%lu", &memory_limit) == 1) {
             if (memory_limit == 0x7FFFFFFFFFFFFFFF) {
+                /* Valor especial que representa limite ilimitado */
                 strncpy(metricas->memoria_limite, "ilimitado", sizeof(metricas->memoria_limite) - 1);
             } else {
                 formatar_memoria(metricas->memoria_limite, sizeof(metricas->memoria_limite), memory_limit);
@@ -671,11 +770,15 @@ int get_metricas_cgroup_v1(pid_t pid, metricas_cgroup_t* metricas) {
     return 0;
 }
 
+/*
+ * Obtém métricas de cgroup para a versão 2
+ */
 int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas) {
     char caminho[512];
     char linha[256];
     FILE *arquivo;
     
+    /* Lê arquivo cgroup do processo */
     snprintf(caminho, sizeof(caminho), "/proc/%d/cgroup", pid);
     arquivo = fopen(caminho, "r");
     if (arquivo == NULL) {
@@ -685,6 +788,7 @@ int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas) {
     char cgroup_path[128] = "";
     int cgroup_encontrado = 0;
     
+    /* Parse para encontrar cgroup v2 (indicado por "0::") */
     while (fgets(linha, sizeof(linha), arquivo)) {
         if (strstr(linha, "0::")) {
             char *path = strchr(linha, ':');
@@ -706,10 +810,12 @@ int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas) {
     }
     fclose(arquivo);
     
+    /* Se não encontrou, assume cgroup raiz */
     if (!cgroup_encontrado || strlen(cgroup_path) > 100) {
         strcpy(cgroup_path, "/");
     }
     
+    /* Obtém estatísticas de CPU */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup%s/cpu.stat", cgroup_path);
     arquivo = fopen(caminho, "r");
     if (arquivo != NULL) {
@@ -724,11 +830,13 @@ int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas) {
         fclose(arquivo);
         
         if (user_usage > 0 || system_usage > 0) {
+            /* Converte microsegundos para segundos */
             double total_seconds = (user_usage + system_usage) / 1e6;
             snprintf(metricas->cpu_usada, sizeof(metricas->cpu_usada), "%.2fs", total_seconds);
         }
     }
     
+    /* Obtém uso atual de memória */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup%s/memory.current", cgroup_path);
     arquivo = fopen(caminho, "r");
     if (arquivo != NULL) {
@@ -739,6 +847,7 @@ int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas) {
         fclose(arquivo);
     }
     
+    /* Obtém limite de memória */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup%s/memory.max", cgroup_path);
     arquivo = fopen(caminho, "r");
     if (arquivo != NULL) {
@@ -747,6 +856,7 @@ int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas) {
             max_buffer[strcspn(max_buffer, "\n")] = 0;
             
             if (strcmp(max_buffer, "max") == 0) {
+                /* "max" significa memória ilimitada */
                 strncpy(metricas->memoria_limite, "ilimitado", sizeof(metricas->memoria_limite) - 1);
             } else {
                 unsigned long memory_limit = strtoul(max_buffer, NULL, 10);
@@ -759,6 +869,9 @@ int get_metricas_cgroup_v2(pid_t pid, metricas_cgroup_t* metricas) {
     return 0;
 }
 
+/*
+ * Define limites de I/O para cgroup v1 (função específica)
+ */
 int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned long escrever_blkIo) {
     if (nome_cgroup == NULL) {
         errno = EINVAL;
@@ -767,12 +880,14 @@ int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned l
 
     char caminho[512];
 
+    /* Cria cgroup blkio se não existir */
     snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s", nome_cgroup);
     if (mkdir(caminho, 0755) != 0 && errno != EEXIST) {
         perror("Erro ao criar cgroup BlkIO");
         return -1;
     }
 
+    /* Define limite de leitura */
     if (ler_blkIo > 0) {
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s/blkio.throttle.read_bps_device", nome_cgroup);
         if (escrever_arquivo(caminho, "8:0 %lu", ler_blkIo) != 0) {
@@ -780,6 +895,7 @@ int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned l
         }
     }
 
+    /* Define limite de escrita */
     if (escrever_blkIo > 0) {
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s/blkio.throttle.write_bps_device", nome_cgroup);
         if (escrever_arquivo(caminho, "8:0 %lu", escrever_blkIo) != 0) {
@@ -792,6 +908,9 @@ int limite_blkio_v1(const char* nome_cgroup, unsigned long ler_blkIo, unsigned l
     return 0;
 }
 
+/*
+ * Obtém métricas de I/O de um cgroup
+ */
 int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsigned long* bytes_escritos) {
     if (nome_cgroup == NULL || bytes_lidos == NULL || bytes_escritos == NULL) {
         errno = EINVAL;
@@ -806,6 +925,7 @@ int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsi
     FILE *arquivo;
 
     if (version == 2) {
+        /* cgroup v2: lê de io.stat */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/%s/io.stat", nome_cgroup);
         arquivo = fopen(caminho, "r");
         if (arquivo != NULL) {
@@ -821,6 +941,7 @@ int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsi
             fclose(arquivo);
         }
     } else if (version == 1) {
+        /* cgroup v1: lê de blkio.io_service_bytes */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/blkio/%s/blkio.io_service_bytes", nome_cgroup);
         arquivo = fopen(caminho, "r");
         if (arquivo != NULL) {
@@ -839,6 +960,10 @@ int get_metricas_blkio(const char* nome_cgroup, unsigned long* bytes_lidos, unsi
     return 0;
 }
 
+/*
+ * Experimento para testar throttling de CPU com cgroups.
+ * Aplica diferentes limites e mede o desempenho real.
+ */
 void experimento_throttling_cpu() {
     printf("\n=== EXPERIMENTO 3: THROTTLING DE CPU ===\n");
     
@@ -847,11 +972,13 @@ void experimento_throttling_cpu() {
     int num_limites = sizeof(limites) / sizeof(limites[0]);
     int version = detectar_cgroup_version();
     
+    /* Cria cgroup para o experimento */
     if (criar_cgroup(cgroup_name) != 0) {
         printf("Erro ao criar cgroup para experimento\n");
         return;
     }
     
+    /* Move processo atual para o cgroup */
     if (mover_cgroup(cgroup_name, getpid()) != 0) {
         printf("Erro ao mover processo\n");
         return;
@@ -860,13 +987,14 @@ void experimento_throttling_cpu() {
     printf("Limite\tCPU%% Medido\tDesvio\t\tThroughput\tStatus\n");
     printf("------\t----------\t------\t\t----------\t------\n");
     
+    /* Testa cada limite de CPU */
     for (int i = 0; i < num_limites; i++) {
         if (limite_cpu(cgroup_name, limites[i]) != 0) {
             printf("Erro ao aplicar limite de CPU\n");
             continue;
         }
         
-        sleep(1);
+        sleep(1); /* Espera estabilização */
         
         clock_t inicio = clock();
         unsigned long iteracoes = 0;
@@ -874,20 +1002,24 @@ void experimento_throttling_cpu() {
         double cpu_total = 0;
         int medicoes = 0;
         
+        /* Executa carga de CPU por 3 segundos */
         while ((clock() - inicio) < (CLOCKS_PER_SEC * 3)) {
             volatile double resultado = 0;
+            /* Gera carga de CPU com cálculos matemáticos intensivos */
             for (int j = 0; j < 100000; j++) { 
                 resultado += sqrt(j) * tan(j * 0.001) * log(j + 1) * cos(j * 0.01);
             }
             (void)resultado;
             iteracoes++;
             
+            /* Coleta métricas periodicamente */
             if (iteracoes % 200 == 0 && get_metricas_cpu(getpid(), &cpu) == 0) {
                 cpu_total += cpu.porcentagem_cpu;
                 medicoes++;
             }
         }
         
+        /* Calcula métricas de desempenho */
         double cpu_medio = medicoes > 0 ? cpu_total / medicoes : 0;
         double throughput = (double)iteracoes / 3.0;
         
@@ -895,7 +1027,9 @@ void experimento_throttling_cpu() {
         double desvio = 0.0;
         char status[32];
         
+        /* Análise de resultados baseada na versão do cgroup */
         if (version == 2) {
+            /* Cgroup v2 usa peso, então a precisão é diferente */
             if (cpu_medio > 0.1 && cpu_esperado > 0.1) {
                 double ratio = cpu_medio / cpu_esperado;
                 if (ratio > 1.3) {
@@ -912,6 +1046,7 @@ void experimento_throttling_cpu() {
                 strcpy(status, "N/A");
             }
         } else {
+            /* Cgroup v1 tem limites mais rígidos */
             if (cpu_esperado > 0.1) {
                 desvio = fabs(cpu_medio - cpu_esperado) / cpu_esperado * 100.0;
                 if (desvio < 15.0) strcpy(status, "PRECISO");
@@ -925,6 +1060,7 @@ void experimento_throttling_cpu() {
         printf("%.2f\t%.1f%%\t\t%.1f%%\t\t%.0f iter/s\t%s\n", limites[i], cpu_medio, desvio, throughput, status);
     }
     
+    /* Limpeza: move processo de volta para root e remove cgroup */
     mover_para_root(getpid());
     remover_cgroup(cgroup_name);
     
@@ -934,18 +1070,24 @@ void experimento_throttling_cpu() {
     }
 }
 
+/*
+ * Experimento para testar limitação de memória com cgroups.
+ * Tenta alocar memória incrementalmente até atingir o limite.
+ */
 void experimento_limite_memoria() {
     printf("\n=== EXPERIMENTO 4: LIMITAÇÃO DE MEMÓRIA ===\n");
     
     const char* cgroup_name = "teste_mem_exp";
     unsigned long limite_mb = 100;
     
+    /* Verifica privilégios de root */
     if (geteuid() != 0) {
         printf("AVISO: Este experimento requer privilégios de root.\n");
         printf("Execute com: sudo ./resource-monitor -e\n");
         return;
     }
     
+    /* Configura cgroup com limite de memória */
     if (criar_cgroup(cgroup_name) != 0) {
         printf("Erro ao criar cgroup para experimento\n");
         return;
@@ -963,12 +1105,13 @@ void experimento_limite_memoria() {
     
     printf("Tentando alocar memória incrementalmente (limite: %lu MB)...\n", limite_mb);
     
-    size_t bloco_size = 10 * 1024 * 1024;
+    size_t bloco_size = 10 * 1024 * 1024; /* 10MB por bloco */
     char** blocos = NULL;
     int num_blocos = 0;
     size_t total_alocado = 0;
     int falha_ocorrida = 0;
     
+    /* Loop de alocação incremental */
     while (total_alocado < limite_mb * 1024 * 1024 && !falha_ocorrida) {
         char* bloco = malloc(bloco_size);
         if (bloco == NULL) {
@@ -977,8 +1120,10 @@ void experimento_limite_memoria() {
             break;
         }
         
+        /* Acessa a memória para forçar alocação real */
         memset(bloco, 0xAA, bloco_size / 10);
         
+        /* Expande array de blocos */
         char** novo_array = realloc(blocos, (num_blocos + 1) * sizeof(char*));
         if (novo_array == NULL) {
             printf("Falha ao expandir array em %zu MB\n", total_alocado / (1024 * 1024));
@@ -993,6 +1138,7 @@ void experimento_limite_memoria() {
         
         printf("Alocado: %zu MB\n", total_alocado / (1024 * 1024));
         
+        /* Mostra métricas atuais do cgroup */
         metricas_cgroup_t metrics;
         if (get_metricas_cgroup(getpid(), &metrics) == 0) {
             printf("  Uso atual: %s, Limite: %s\n", metrics.memoria_usada, metrics.memoria_limite);
@@ -1003,6 +1149,7 @@ void experimento_limite_memoria() {
     
     printf("Máximo alocado: %zu MB\n", total_alocado / (1024 * 1024));
     
+    /* Limpeza: libera toda a memória alocada */
     if (blocos != NULL) {
         for (int i = 0; i < num_blocos; i++) {
             if (blocos[i] != NULL) {
@@ -1012,12 +1159,16 @@ void experimento_limite_memoria() {
         free(blocos);
     }
     
+    /* Move processo de volta e remove cgroup */
     mover_para_root(getpid());
     remover_cgroup(cgroup_name);
     
     printf("Comportamento: %s\n", falha_ocorrida ? "Falha de alocação antes do limite" : "Limite atingido sem OOM killer");
 }
 
+/*
+ * Formata bytes em string legível (B, KB, MB, GB)
+ */
 void formatar_memoria(char* buffer, size_t buffer_size, unsigned long bytes) {
     if (bytes > 1024 * 1024) {
         snprintf(buffer, buffer_size, "%.1fMB", bytes / (1024.0 * 1024.0));
@@ -1028,13 +1179,18 @@ void formatar_memoria(char* buffer, size_t buffer_size, unsigned long bytes) {
     }
 }
 
+/*
+ * Experimento para testar limitação de I/O com cgroups.
+ * Aplica diferentes limites e mede throughput e latência.
+ */
 void experimento_limite_io() {
     printf("\n=== EXPERIMENTO 5: LIMITAÇÃO DE I/O ===\n");
     
     const char* cgroup_name = "teste_io_exp";
-    unsigned long limites_bps[] = {1024 * 1024, 512 * 1024, 256 * 1024};
+    unsigned long limites_bps[] = {1024 * 1024, 512 * 1024, 256 * 1024}; /* 1MB/s, 512KB/s, 256KB/s */
     int num_limites = sizeof(limites_bps) / sizeof(limites_bps[0]);
     
+    /* Configura cgroup para experimento */
     if (criar_cgroup(cgroup_name) != 0) {
         printf("Erro ao criar cgroup para experimento\n");
         return;
@@ -1048,13 +1204,14 @@ void experimento_limite_io() {
     printf("Limite\tThroughput Medido\tLatência\tTempo Execução\n");
     printf("------\t----------------\t--------\t-------------\n");
     
+    /* Testa cada limite de I/O */
     for (int i = 0; i < num_limites; i++) {
         if (limite_io(cgroup_name, limites_bps[i], limites_bps[i]) != 0) {
             printf("Erro ao aplicar limite de I/O\n");
             continue;
         }
         
-        sleep(1);
+        sleep(1); /* Espera estabilização */
         
         const char* test_file = "io_test_file.dat";
         const size_t block_size = 4096;
@@ -1063,8 +1220,10 @@ void experimento_limite_io() {
         clock_t inicio = clock();
         metricas_io_t io_inicio, io_fim;
         
+        /* Mede I/O inicial */
         get_metricas_io(getpid(), &io_inicio);
         
+        /* Executa teste de escrita */
         FILE* file = fopen(test_file, "w");
         if (file) {
             char buffer[block_size];
@@ -1072,14 +1231,16 @@ void experimento_limite_io() {
             
             for (int j = 0; j < num_blocks; j++) {
                 fwrite(buffer, 1, block_size, file);
-                fflush(file);
+                fflush(file); /* Força escrita imediata */
             }
             fclose(file);
         }
         
+        /* Mede I/O final e tempo */
         get_metricas_io(getpid(), &io_fim);
         clock_t fim = clock();
         
+        /* Calcula métricas */
         double tempo_execucao = ((double)(fim - inicio)) / CLOCKS_PER_SEC;
         unsigned long bytes_escritos = io_fim.bytes_escritos - io_inicio.bytes_escritos;
         double throughput = bytes_escritos / tempo_execucao;
@@ -1087,13 +1248,18 @@ void experimento_limite_io() {
         
         printf("%lu B/s\t%.0f B/s (%.1f%%)\t%.2f ms\t\t%.2f s\n", limites_bps[i], throughput, (throughput / limites_bps[i]) * 100,latencia_media, tempo_execucao);
         
+        /* Remove arquivo de teste */
         unlink(test_file);
     }
     
+    /* Limpeza */
     mover_cgroup("", getpid());
     remover_cgroup(cgroup_name);
 }
 
+/*
+ * Move um processo de volta para o cgroup raiz
+ */
 int mover_para_root(pid_t pid) {
     int version = detectar_cgroup_version();
     char caminho[512];
@@ -1102,9 +1268,11 @@ int mover_para_root(pid_t pid) {
     snprintf(pid_str, sizeof(pid_str), "%d", pid);
     
     if (version == 2) {
+        /* cgroup v2: move para cgroup raiz */
         snprintf(caminho, sizeof(caminho), "/sys/fs/cgroup/cgroup.procs");
         return escrever_arquivo(caminho, "%s", pid_str);
     } else if (version == 1) {
+        /* cgroup v1: move para root em todos os controladores */
         char* controladores[] = {"cpu", "memory", "blkio"};
         int sucesso = 0;
         

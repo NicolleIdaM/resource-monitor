@@ -7,12 +7,16 @@
 #include <unistd.h>
 #include <getopt.h>
 
+/* Declarações de funções de experimentos */
 void experimento_overhead(void);
 void experimento_isolamento_namespace(void);
 void experimento_throttling_cpu(void);
 void experimento_limite_memoria(void);
 void experimento_limite_io(void);
 
+/*
+ * Mostra uso do programa e opções de linha de comando.
+ */
 void mostrar_uso(const char* nome_programa) {
     printf("Uso: %s [OPÇÕES]\n", nome_programa);
     printf("\nOPÇÕES:\n");
@@ -32,22 +36,30 @@ void mostrar_uso(const char* nome_programa) {
     printf("  %s -s comparar 1,1234         # Comparar namespaces dos PIDs 1 e 1234\n", nome_programa);
 }
 
+/*
+ * Monitora processo com saída formatada em tabela.
+ * Mostra CPU, memória, I/O e threads em intervalos regulares.
+ */
 void monitorar_processo(pid_t pid, int intervalo, int iteracoes) {
     printf("Iniciando monitoramento do PID %d\n", pid);
     printf("Intervalo: %d ms, Iterações: %d\n\n", intervalo, iteracoes);
     
+    /* Cabeçalho da tabela */
     printf("%-8s %-8s %-12s %-10s %-12s %-10s %-8s\n", "Tempo", "CPU%", "Memória", "Swap", "IO Leitura", "IO Escrita", "Threads");
     printf("%-8s %-8s %-12s %-10s %-12s %-10s %-8s\n", "(s)", "", "(MB)", "(MB)", "(MB)", "(MB)", "");
     
+    /* Loop de monitoramento */
     for (int i = 0; i < iteracoes; i++) {
         metricas_cpu_t cpu;
         metricas_memoria_t memoria;
         metricas_io_t io;
         
+        /* Coleta todas as métricas */
         if (get_metricas_cpu(pid, &cpu) == 0 &&
             get_metricas_memoria(pid, &memoria) == 0 &&
             get_metricas_io(pid, &io) == 0) {
             
+            /* Mostra métricas formatadas */
             printf("%-8d %-8.1f %-12.1f %-10.1f %-12.1f %-10.1f %-8lu\n",
                    i * intervalo / 1000,
                    cpu.porcentagem_cpu,
@@ -60,10 +72,15 @@ void monitorar_processo(pid_t pid, int intervalo, int iteracoes) {
             printf("Erro ao coletar métricas na iteração %d\n", i);
         }
         
+        /* Espera intervalo especificado */
         usleep(intervalo * 1000);
     }
 }
 
+/*
+ * Modo de monitoramento detalhado com informações completas.
+ * Mostra todas as métricas disponíveis de forma expandida.
+ */
 void modo_monitoramento_detalhado(pid_t pid, int intervalo, int iteracoes) {
     printf("=== MODO DE MONITORAMENTO DETALHADO ===\n");
     printf("PID: %d, Intervalo: %d ms, Iterações: %d\n\n", pid, intervalo, iteracoes);
@@ -71,6 +88,7 @@ void modo_monitoramento_detalhado(pid_t pid, int intervalo, int iteracoes) {
     for (int i = 0; i < iteracoes; i++) {
         printf("--- Iteração %d ---\n", i + 1);
         
+        /* Métricas de CPU */
         metricas_cpu_t cpu;
         if (get_metricas_cpu(pid, &cpu) == 0) {
             printf("CPU: %.1f%% (User: %lu ticks, System: %lu ticks)\n",
@@ -81,6 +99,7 @@ void modo_monitoramento_detalhado(pid_t pid, int intervalo, int iteracoes) {
             printf("CPU: Erro ao obter métricas\n");
         }
         
+        /* Métricas de Memória */
         metricas_memoria_t memoria;
         if (get_metricas_memoria(pid, &memoria) == 0) {
             printf("Memória: RAM=%.1fMB, Virtual=%.1fMB, Swap=%.1fMB\n",
@@ -93,6 +112,7 @@ void modo_monitoramento_detalhado(pid_t pid, int intervalo, int iteracoes) {
             printf("Memória: Erro ao obter métricas\n");
         }
         
+        /* Métricas de I/O */
         metricas_io_t io;
         if (get_metricas_io(pid, &io) == 0) {
             printf("I/O: Leitura=%luMB, Escrita=%luMB\n",
@@ -109,6 +129,9 @@ void modo_monitoramento_detalhado(pid_t pid, int intervalo, int iteracoes) {
     }
 }
 
+/*
+ * Executa todos os experimentos obrigatórios do sistema.
+ */
 void executar_experimentos() {
     printf("=== EXECUTANDO EXPERIMENTOS OBRIGATÓRIOS ===\n");
     printf("============================================\n\n");
@@ -131,6 +154,9 @@ void executar_experimentos() {
     printf("EXPERIMENTOS CONCLUÍDOS\n");
 }
 
+/*
+ * Processa comandos relacionados a cgroups.
+ */
 void processar_comando_cgroup(const char* acao) {
     if (strcmp(acao, "listar") == 0) {
         listar_cgroups();
@@ -149,6 +175,9 @@ void processar_comando_cgroup(const char* acao) {
     }
 }
 
+/*
+ * Processa comandos relacionados a namespaces.
+ */
 void processar_comando_namespace(const char* acao) {
     if (strcmp(acao, "listar") == 0) {
         listar_namespaces();
@@ -203,6 +232,10 @@ void processar_comando_namespace(const char* acao) {
     }
 }
 
+/*
+ * Função principal do programa.
+ * Processa argumentos de linha de comando e direciona para funcionalidades específicas.
+ */
 int main(int argc, char *argv[]) {
     pid_t pid = getpid();
     int intervalo = 1000;
@@ -213,6 +246,7 @@ int main(int argc, char *argv[]) {
     char* comando_cgroup = NULL;
     char* comando_namespace = NULL;
     
+    /* Definição das opções de linha de comando */
     static struct option opcoes_longa[] = {
         {"pid", required_argument, 0, 'p'},
         {"intervalo", required_argument, 0, 'i'},
@@ -229,6 +263,7 @@ int main(int argc, char *argv[]) {
     int opcao;
     int indice_opcao = 0;
     
+    /* Processamento das opções de linha de comando */
     while ((opcao = getopt_long(argc, argv, "p:i:n:mdehc:s:", opcoes_longa, &indice_opcao)) != -1) {
         switch (opcao) {
             case 'p':
@@ -276,9 +311,11 @@ int main(int argc, char *argv[]) {
         }
     }
     
+    /* Cabeçalho do programa */
     printf("=== RESOURCE MONITOR ===\n");
     printf("Sistema de profiling e análise de recursos\n\n");
     
+    /* Execução de comandos específicos */
     if (comando_cgroup) {
         processar_comando_cgroup(comando_cgroup);
         return 0;
@@ -303,6 +340,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     
+    /* Modo interativo: menu para usuário */
     printf("Selecione uma opção:\n");
     printf("1. Monitoramento em tempo real\n");
     printf("2. Monitoramento detalhado\n");
@@ -337,6 +375,7 @@ int main(int argc, char *argv[]) {
                 printf("PID atual: %d\n", getpid());
                 printf("Versão do cgroup: %d\n", detectar_cgroup_version());
                 
+                /* Mostra algumas métricas do sistema atual */
                 metricas_cpu_t cpu;
                 metricas_memoria_t memoria;
                 metricas_cgroup_t cgroup;
