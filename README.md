@@ -35,3 +35,52 @@ sudo apt install python3 python3-pip python3-tk
 
 # Bibliotecas Python para interface gráfica
 pip3 install matplotlib psutil
+```
+
+### Instruções de Compilação
+#### COMPILAÇÃO DOS MÓDULOS EM .C
+```bash
+# Navegue até o diretório do projeto
+cd resource-monitor
+
+# Compile todos os módulos
+gcc -c src/cpu_monitor.c -o obj/cpu_monitor.o -Iinclude
+gcc -c src/memory_monitor.c -o obj/memory_monitor.o -Iinclude
+gcc -c src/io_monitor.c -o obj/io_monitor.o -Iinclude
+gcc -c src/network_monitor.c -o obj/network_monitor.o -Iinclude
+gcc -c src/namespace_analyzer.c -o obj/namespace_analyzer.o -Iinclude
+gcc -c src/cgroup_manager.c -o obj/cgroup_manager.o -Iinclude
+gcc -c src/main.c -o obj/main.o -Iinclude
+
+# Linkagem do executável principal
+gcc obj/*.o -o bin/resource-monitor -lm
+
+```
+
+#### COMPILAÇÃO DOS TESTES
+```bash
+# Compile os testes unitários
+gcc -c tests/test_cpu.c -o obj/test_cpu.o -Iinclude
+gcc obj/test_cpu.o obj/cpu_monitor.o -o bin/test_cpu -lm
+
+gcc -c tests/test_memory.c -o obj/test_memory.o -Iinclude
+gcc obj/test_memory.o obj/memory_monitor.o -o bin/test_memory -lm
+
+gcc -c tests/test_io.c -o obj/test_io.o -Iinclude
+gcc obj/test_io.o obj/io_monitor.o -o bin/test_io -lm
+
+gcc -c tests/test_network.c -o obj/test_network.o -Iinclude
+gcc obj/test_network.o obj/network_monitor.o -o bin/test_network -lm
+
+# Simplificado
+make clean
+make
+
+## Compilar todos os teste juntos
+make test-all
+
+## Compilar teste separadamente
+make test-cpu
+make test-memory
+make test-io
+```
