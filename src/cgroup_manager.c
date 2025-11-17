@@ -829,6 +829,80 @@ void experimento_limite_memoria() {
     mover_para_root(getpid());
     remover_cgroup(cgroup_name);
     
-    printf("Comportamento: %s\n", 
-           falha_ocorrida ? "Falha de alocação antes do limite" : "Limite atingido sem OOM killer");
+    if (falha_ocorrida) {
+        printf("   Comportamento esperado: Sistema preveniu estouro de memória\n");
+        printf("   Detalhe: Alocação foi bloqueada antes de atingir o limite físico\n");
+    } else {
+        printf("   Comportamento crítico: Limite de memória foi totalmente consumido\n");
+        printf("   Detalhe: OOM Killer pode ter sido acionado para liberar memória\n");
+    }
+}
+
+void experimento_limite_io() {
+    printf("\n=== EXPERIMENTO 5: LIMITAÇÃO DE I/O ===\n");
+    
+    const char* cgroup_name = "teste_io_exp";
+    unsigned long limites_bps[] = {1024 * 1024, 512 * 1024, 256 * 1024};
+    int num_limites = sizeof(limites_bps) / sizeof(limites_bps[0]);
+    
+    if (criar_cgroup(cgroup_name) != 0) {
+        printf("Erro ao criar cgroup para experimento\n");
+        return;
+    }
+    
+    if (mover_cgroup(cgroup_name, getpid()) != 0) {
+        printf("Erro ao mover processo\n");
+        return;
+    }
+    
+    printf("Limite\tThroughput Medido\tLatência\tTempo Execução\n");
+    printf("------\t----------------\t--------\t-------------\n");
+    
+    for (int i = 0; i < num_limites; i++) {
+        if (limite_io(cgroup_name, limites_bps[i], limites_bps[i]) != 0) {
+            printf("Erro ao aplicar limite de I/O\n");
+            continue;
+        }
+        
+        sleep(1);
+        
+        const char* test_file = "io_test_file.dat";
+        const size_t block_size = 4096;
+        const int num_blocks = 1000;
+        
+        clock_t inicio = clock();
+        metricas_io_t io_inicio, io_fim;
+        
+        get_metricas_io(getpid(), &io_inicio);
+        
+        FILE* file = fopen(test_file, "w");
+        if (file) {
+            char buffer[block_size];
+            memset(buffer, 'X', block_size);
+            
+            for (int j = 0; j < num_blocks; j++) {
+                fwrite(buffer, 1, block_size, file);
+                fflush(file);
+            }
+            fclose(file);
+        }
+        
+        get_metricas_io(getpid(), &io_fim);
+        clock_t fim = clock();
+        
+        double tempo_execucao = ((double)(fim - inicio)) / CLOCKS_PER_SEC;
+        unsigned long bytes_escritos = io_fim.bytes_escritos - io_inicio.bytes_escritos;
+        double throughput = bytes_escritos / tempo_execucao;
+        double latencia_media = tempo_execucao * 1000 / num_blocks;
+        
+        printf("%lu B/s\t%.0f B/s (%.1f%%)\t%.2f ms\t\t%.2f s\n",
+               limites_bps[i], throughput, 
+               (throughput / limites_bps[i]) * 100,
+               latencia_media, tempo_execucao);
+        
+        unlink(test_file);
+    }
+    
+    mover_cgroup("", getpid());
+    remover_cgroup(cgroup_name);
 }
