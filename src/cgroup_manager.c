@@ -688,4 +688,15 @@ void experimento_throttling_cpu() {
         printf("Erro ao criar cgroup para experimento\n");
         return;
     }
+
+    if (mover_cgroup(cgroup_name, getpid()) != 0) {
+        printf("Erro ao mover processo\n");
+        return;
+    }
+    
+    printf("Limite\tCPU%% Medido\tDesvio\t\tThroughput\n");
+    printf("------\t----------\t------\t\t----------\n");
+    
+    mover_cgroup("", getpid());
+    remover_cgroup(cgroup_name);
 }
