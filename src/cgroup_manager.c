@@ -783,6 +783,40 @@ void experimento_limite_memoria() {
     size_t total_alocado = 0;
     int falha_ocorrida = 0;
     
+    while (total_alocado < limite_mb * 1024 * 1024 && !falha_ocorrida) {
+        char* bloco = malloc(tamanho_bloco);
+        if (bloco == NULL) {
+            printf("Falha de alocação em %zu MB\n", total_alocado / (1024 * 1024));
+            falha_ocorrida = 1;
+            break;
+        }
+        
+        memset(bloco, 0xAA, tamanho_bloco / 10);
+        
+        char** novo_array = realloc(blocos, (qtde_blocos + 1) * sizeof(char*));
+        if (novo_array == NULL) {
+            printf("Falha ao expandir array em %zu MB\n", total_alocado / (1024 * 1024));
+            free(bloco);
+            falha_ocorrida = 1;
+            break;
+        }
+        
+        blocos = novo_array;
+        blocos[qtde_blocos++] = bloco;
+        total_alocado += tamanho_bloco;
+        
+        printf("Alocado: %zu MB\n", total_alocado / (1024 * 1024));
+        
+        metricas_cgroup_t metrics;
+        if (get_metricas_cgroup(getpid(), &metrics) == 0) {
+            printf("  Uso atual: %s, Limite: %s\n", metrics.memoria_usada, metrics.memoria_limite);
+        }
+        
+        sleep(1);
+    }
+    
+    printf("Máximo alocado: %zu MB\n", total_alocado / (1024 * 1024));
+
     if (blocos != NULL) {
         for (int i = 0; i < qtde_blocos; i++) {
             if (blocos[i] != NULL) {
