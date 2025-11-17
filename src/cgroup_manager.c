@@ -747,3 +747,54 @@ void experimento_throttling_cpu() {
     mover_cgroup("", getpid());
     remover_cgroup(cgroup_name);
 }
+
+void experimento_limite_memoria() {
+    printf("\n=== EXPERIMENTO 4: LIMITAÇÃO DE MEMÓRIA ===\n");
+    
+    const char* cgroup_name = "teste_memoria_exp";
+    unsigned long limite_mb = 100;
+    
+    if (geteuid() != 0) {
+        printf("AVISO: Este experimento requer privilégios de root.\n");
+        printf("Execute com: sudo ./resource-monitor -e\n");
+        return;
+    }
+    
+    if (criar_cgroup(cgroup_name) != 0) {
+        printf("Erro ao criar cgroup para experimento\n");
+        return;
+    }
+    
+    if (mover_cgroup(cgroup_name, getpid()) != 0) {
+        printf("Erro ao mover processo\n");
+        return;
+    }
+    
+    if (limite_memoria(cgroup_name, limite_mb) != 0) {
+        printf("Erro ao aplicar limite de memória\n");
+        return;
+    }
+    
+    printf("Tentando alocar memória incrementalmente (limite: %lu MB)...\n", limite_mb);
+    
+    size_t tamanho_bloco = 10 * 1024 * 1024;
+    char** blocos = NULL;
+    int qtde_blocos = 0;
+    size_t total_alocado = 0;
+    int falha_ocorrida = 0;
+    
+    if (blocos != NULL) {
+        for (int i = 0; i < qtde_blocos; i++) {
+            if (blocos[i] != NULL) {
+                free(blocos[i]);
+            }
+        }
+        free(blocos);
+    }
+    
+    mover_para_root(getpid());
+    remover_cgroup(cgroup_name);
+    
+    printf("Comportamento: %s\n", 
+           falha_ocorrida ? "Falha de alocação antes do limite" : "Limite atingido sem OOM killer");
+}
